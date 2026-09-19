@@ -96,9 +96,9 @@
       </div>
       <div>
         <h1 class="text-base font-mono font-bold tracking-wider text-slate-100 uppercase flex items-center gap-2">
-          V-SPIN // CORE <span class="text-xs px-2 py-0.5 rounded bg-emerald-950/80 text-cyber-neon border border-emerald-500/30 font-mono">SYS.ONLINE</span>
+          Computer Love IRL <span class="text-xs px-2 py-0.5 rounded bg-emerald-950/80 text-cyber-neon border border-emerald-500/30 font-mono">SYS.ONLINE</span>
         </h1>
-        <p class="text-[11px] font-mono text-slate-400">Tech-Minimalist Video Selector & Randomizer</p>
+        <p class="text-[11px] font-mono text-slate-400">Data Leaks Video Selector</p>
       </div>
     </div>
 
@@ -116,10 +116,10 @@
     </div>
   </header>
 
-  <main class="relative z-10 flex-1 max-w-[1700px] w-full mx-auto p-4 md:p-6 lg:p-8 flex flex-col lg:flex-row items-stretch gap-6">
+  <main class="relative z-10 flex-1 max-w-[1700px] w-full mx-auto p-3 sm:p-4 md:p-6 lg:p-8 flex flex-col sm:flex-row items-stretch gap-4 sm:gap-6">
 
     <!-- LEFT / CENTER: The Wheel Arena -->
-    <section class="flex-1 flex flex-col items-center justify-center min-h-[500px] lg:min-h-[640px] bg-cyber-panel/40 border border-cyber-border/50 rounded-2xl p-4 lg:p-8 relative backdrop-blur-sm shadow-2xl">
+    <section class="flex-1 min-w-0 flex flex-col items-center justify-center min-h-[420px] sm:min-h-[520px] lg:min-h-[640px] bg-cyber-panel/40 border border-cyber-border/50 rounded-2xl p-3 sm:p-4 md:p-6 lg:p-8 relative backdrop-blur-sm shadow-2xl">
 
       <!-- Center Wheel Wrapper with Pointer -->
       <div class="relative w-full max-w-[560px] aspect-square flex items-center justify-center">
@@ -172,7 +172,7 @@
     </section>
 
     <!-- RIGHT: Functional Control Panel / Sidebar -->
-    <aside class="w-full lg:w-[480px] bg-cyber-panel/90 border border-cyber-border rounded-2xl flex flex-col justify-between shadow-2xl backdrop-blur-md overflow-hidden">
+    <aside class="w-full sm:w-[320px] md:w-[380px] lg:w-[440px] xl:w-[480px] flex-shrink-0 bg-cyber-panel/90 border border-cyber-border rounded-2xl flex flex-col justify-between shadow-2xl backdrop-blur-md overflow-hidden">
       
       <!-- Top Counters & Header (Inspired by reference) -->
       <div class="p-4 sm:p-5 border-b border-cyber-border bg-cyber-card/50">
@@ -384,9 +384,14 @@
       </button>
 
       <!-- Badge -->
-      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-cyber-neon text-cyber-neon text-xs font-mono font-bold uppercase mb-4 text-glow-green">
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-cyber-neon text-cyber-neon text-xs font-mono font-bold uppercase mb-2 text-glow-green">
         <span class="w-2 h-2 rounded-full bg-cyber-neon animate-ping"></span>
         Target Acquired
+      </div>
+
+      <!-- Inactive / Hidden from Wheel Badge -->
+      <div id="eliminatedBadge" class="hidden mb-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-950/80 border border-amber-500/50 text-amber-300 text-[11px] font-mono">
+        <span>✕ HIDDEN FROM WHEEL (ACTIVE: FALSE)</span>
       </div>
 
       <h3 class="text-sm font-mono text-slate-400 uppercase tracking-widest mb-1">Random Video Selected</h3>
@@ -621,13 +626,24 @@
   </div>
 
   <script type="module">
+    window.addEventListener('error', (event) => {
+      if (
+        event.message &&
+        (event.message.includes('ResizeObserver loop completed with undelivered notifications') ||
+         event.message.includes('ResizeObserver loop limit exceeded'))
+      ) {
+        event.stopImmediatePropagation();
+        event.preventDefault();
+      }
+    });
+
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-    // Firebase Modular Configuration
-    const userFirebaseConfig = {
+    // Firebase Configuration
+    const firebaseConfig = {
       apiKey: "AIzaSyAZN7FbQasr14Y9Yy_Sxekl59CeIVqGEYg",
       authDomain: "clirl-data-leaks.firebaseapp.com",
       projectId: "clirl-data-leaks",
@@ -637,18 +653,13 @@
       measurementId: "G-0FBRRXG603"
     };
 
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : userFirebaseConfig;
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'clirl-data-leaks';
-
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const storage = getStorage(app);
     const auth = getAuth(app);
 
-    // Strict path collection reference for public data
-    const getEntriesCollection = () => {
-      return collection(db, 'artifacts', appId, 'public', 'data', 'wheel_entries');
-    };
+    // Direct collection reference to root 'wheel_entries'
+    const ENTRIES_COLLECTION = "wheel_entries";
 
     /**
      * CYBERSPIN APPLICATION CORE
@@ -656,11 +667,13 @@
      */
 
     // --- APPLICATION STATE ---
-    let videoEntries = []; // Array of objects: { id?: string, name: string, url?: string }
-    let videoFileBlobs = new Map(); // Local blob fallback map
+    let allEntries = []; // All Firestore entries (both active and inactive)
+    let videoEntries = []; // Active entries filtered for the wheel: { id: string, name: string, url: string, active: boolean }
+    let videoFileBlobs = new Map(); // Stream URL lookup map
     let resultsCount = 0;
     let isSpinning = false;
     let currentAngle = 0; // In radians
+    let targetWinningIndex = -1;
     let winningItem = null;
     let currentUser = null;
 
@@ -738,6 +751,7 @@
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 
     const winnerModal = document.getElementById('winnerModal');
+    const eliminatedBadge = document.getElementById('eliminatedBadge');
     const modalWinningName = document.getElementById('modalWinningName');
     const countdownTimerText = document.getElementById('countdownTimerText');
     const countdownProgressBar = document.getElementById('countdownProgressBar');
@@ -884,14 +898,52 @@
       return typeof entry === 'object' ? entry.name : entry;
     }
 
+    function isEntryActive(entry) {
+      if (!entry) return false;
+      // Default to true if undefined or null, false only if explicitly false or string "false"
+      return entry.active !== false && entry.active !== 'false';
+    }
+
+    function filterAndRenderEntries() {
+      videoEntries = allEntries.filter(entry => isEntryActive(entry));
+      updateUI();
+    }
+
+    async function toggleEntryActiveStatus(entryId) {
+      const entry = allEntries.find(e => e && e.id === entryId);
+      if (!entry) return;
+
+      const currentActive = isEntryActive(entry);
+      const newActiveState = !currentActive;
+
+      // Optimistically update local state
+      entry.active = newActiveState;
+      filterAndRenderEntries();
+
+      // Persist to Firestore
+      try {
+        await updateDoc(doc(db, ENTRIES_COLLECTION, entryId), {
+          active: newActiveState
+        });
+      } catch (err) {
+        console.error('Error toggling active state in Firestore:', err);
+        // Revert on error
+        entry.active = currentActive;
+        filterAndRenderEntries();
+      }
+    }
+
     function updateUI() {
-      if (entriesCountEl) entriesCountEl.textContent = videoEntries.length;
+      if (entriesCountEl) {
+        entriesCountEl.textContent = `${videoEntries.length}/${allEntries.length}`;
+        entriesCountEl.title = `${videoEntries.length} active on wheel of ${allEntries.length} total`;
+      }
       if (resultsCountEl) resultsCountEl.textContent = resultsCount;
-      if (listBadge) listBadge.textContent = `${videoEntries.length} Items`;
+      if (listBadge) listBadge.textContent = `${videoEntries.length} on Wheel`;
 
       if (videoListContainer) {
         videoListContainer.innerHTML = '';
-        if (videoEntries.length === 0) {
+        if (allEntries.length === 0) {
           const emptyDiv = document.createElement('div');
           emptyDiv.id = 'emptyListNotice';
           emptyDiv.className = 'h-full flex flex-col items-center justify-center text-center p-4 text-slate-600 font-mono text-xs';
@@ -899,41 +951,83 @@
             <svg class="w-8 h-8 mb-2 opacity-50 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
             </svg>
-            No video files added yet.<br>
-            Click <span class="text-cyber-neon">"Add Video File"</span> to upload to Firebase Cloud Storage.
+            No video files found in Firebase.<br>
+            Click <span class="text-cyber-neon">"Add Video File"</span> to upload to Firebase Storage & Firestore.
           `;
           videoListContainer.appendChild(emptyDiv);
         } else {
-          videoEntries.forEach((entry, index) => {
+          allEntries.forEach((entry, index) => {
             const fileName = getEntryName(entry);
             const hasCloudUrl = typeof entry === 'object' && Boolean(entry.url);
+            const active = isEntryActive(entry);
+
             const itemEl = document.createElement('div');
-            itemEl.className = 'flex items-center justify-between p-2 rounded-lg bg-cyber-card/70 hover:bg-cyber-card border border-cyber-border/50 text-xs font-mono group transition-colors';
+            itemEl.className = `flex items-center justify-between p-2 rounded-lg border text-xs font-mono group transition-colors ${
+              active 
+                ? 'bg-cyber-card/70 hover:bg-cyber-card border-cyber-border/50' 
+                : 'bg-cyber-black/80 hover:bg-cyber-card/40 border-slate-800/60 opacity-60'
+            }`;
             itemEl.innerHTML = `
-              <div class="flex items-center gap-2 truncate pr-2">
-                <span class="text-[10px] text-slate-500 font-bold w-5 text-right">#${(index + 1).toString().padStart(2, '0')}</span>
-                <svg class="w-3.5 h-3.5 ${hasCloudUrl ? 'text-cyber-neon' : 'text-cyber-cyan'} flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="flex items-center gap-2 truncate pr-2 min-w-0 flex-1">
+                <span class="text-[10px] ${active ? 'text-cyber-neon' : 'text-slate-600'} font-bold w-5 text-right flex-shrink-0">
+                  #${(index + 1).toString().padStart(2, '0')}
+                </span>
+                <svg class="w-3.5 h-3.5 ${active ? (hasCloudUrl ? 'text-cyber-neon' : 'text-cyber-cyan') : 'text-slate-600'} flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                <span class="truncate text-slate-200" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span>
-                ${hasCloudUrl ? '<span class="text-[9px] px-1 rounded bg-emerald-950/80 text-cyber-neon border border-emerald-500/40 uppercase">Cloud</span>' : ''}
+                <span class="truncate ${active ? 'text-slate-200' : 'text-slate-500 line-through'}" title="${escapeHtml(fileName)}">
+                  ${escapeHtml(fileName)}
+                </span>
+                ${hasCloudUrl ? '<span class="text-[9px] px-1 rounded bg-emerald-950/80 text-cyber-neon border border-emerald-500/40 uppercase flex-shrink-0">Firebase</span>' : ''}
               </div>
-              <button 
-                data-index="${index}"
-                class="remove-item-btn px-2 py-1 rounded bg-rose-950/30 hover:bg-rose-900/60 border border-rose-800/30 hover:border-rose-600/60 text-rose-400 hover:text-rose-200 transition-all focus:outline-none flex items-center gap-1 text-[11px]"
-                title="Delete Entry from Database & UI"
-              >
-                <svg class="w-3 h-3 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                <span>Delete</span>
-              </button>
+
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                <!-- Toggle Active Button -->
+                <button
+                  data-entry-id="${entry.id || ''}"
+                  class="toggle-active-btn px-2 py-1 rounded text-[10px] font-bold border transition-all active:scale-95 flex items-center gap-1 ${
+                    active 
+                      ? 'bg-emerald-950/60 hover:bg-emerald-900 text-cyber-neon border-emerald-500/50 shadow-sm' 
+                      : 'bg-slate-900 hover:bg-slate-800 text-slate-400 border-slate-700'
+                  }"
+                  title="${active ? 'Click to hide from wheel' : 'Click to show on wheel'}"
+                >
+                  <span>${active ? '● ON WHEEL' : '○ HIDDEN'}</span>
+                </button>
+
+                <!-- Delete from Firestore & App Button -->
+                <button 
+                  data-entry-id="${entry.id || ''}"
+                  class="remove-item-btn px-2 py-1 rounded bg-rose-950/30 hover:bg-rose-900/60 border border-rose-800/30 hover:border-rose-600/60 text-rose-400 hover:text-rose-200 transition-all focus:outline-none flex items-center gap-1 text-[11px]"
+                  title="Delete Entry from Firebase Database & Wheel"
+                >
+                  <svg class="w-3 h-3 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>Delete</span>
+                </button>
+              </div>
             `;
+
+            // Active toggle handler
+            const toggleBtn = itemEl.querySelector('.toggle-active-btn');
+            if (toggleBtn && entry.id) {
+              toggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleEntryActiveStatus(entry.id);
+              });
+            }
+
+            // Remove button handler
             const removeBtn = itemEl.querySelector('.remove-item-btn');
             if (removeBtn) {
               removeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                removeEntryByIndex(index);
+                if (entry.id) {
+                  deleteEntryById(entry.id);
+                } else {
+                  removeEntryByIndex(index);
+                }
               });
             }
             videoListContainer.appendChild(itemEl);
@@ -942,25 +1036,36 @@
       }
 
       if (hudWinningFileName && videoEntries.length === 0) {
-        hudWinningFileName.textContent = 'None (Upload videos to spin)';
+        hudWinningFileName.textContent = allEntries.length > 0 ? 'All videos hidden (Toggle ON WHEEL to spin)' : 'None (Upload videos to spin)';
         hudWinningFileName.classList.remove('text-glow-green');
       }
 
       drawWheel();
     }
 
+    async function deleteEntryById(entryId) {
+      if (!entryId) return;
+      try {
+        await deleteDoc(doc(db, ENTRIES_COLLECTION, entryId));
+      } catch (e) {
+        console.warn('Firestore doc deletion error:', e);
+      }
+      allEntries = allEntries.filter(e => e && e.id !== entryId);
+      filterAndRenderEntries();
+    }
+
     async function removeEntryByIndex(index) {
-      if (index >= 0 && index < videoEntries.length) {
-        const targetEntry = videoEntries[index];
-        if (targetEntry && targetEntry.id && currentUser) {
+      if (index >= 0 && index < allEntries.length) {
+        const targetEntry = allEntries[index];
+        if (targetEntry && targetEntry.id) {
           try {
-            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'wheel_entries', targetEntry.id));
+            await deleteDoc(doc(db, ENTRIES_COLLECTION, targetEntry.id));
           } catch (e) {
-            console.warn('Firestore doc deletion warning:', e);
+            console.warn('Firestore doc deletion error:', e);
           }
         }
-        videoEntries.splice(index, 1);
-        updateUI();
+        allEntries.splice(index, 1);
+        filterAndRenderEntries();
       }
     }
 
@@ -970,29 +1075,28 @@
         systemStatusEl.classList.add('text-rose-400');
       }
 
-      // 1. Delete all document records from Firestore
-      if (currentUser) {
-        try {
-          const snapshot = await getDocs(getEntriesCollection());
-          const deleteOps = [];
-          snapshot.forEach((docSnap) => {
-            deleteOps.push(deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'wheel_entries', docSnap.id)));
-          });
-          await Promise.all(deleteOps);
-        } catch (e) {
-          console.warn('Error clearing Firestore collection:', e);
-        }
+      // 1. Delete all document records from Firestore wheel_entries collection
+      try {
+        const snapshot = await getDocs(collection(db, ENTRIES_COLLECTION));
+        const deleteOps = [];
+        snapshot.forEach((docSnap) => {
+          deleteOps.push(deleteDoc(doc(db, ENTRIES_COLLECTION, docSnap.id)));
+        });
+        await Promise.all(deleteOps);
+      } catch (e) {
+        console.warn('Error clearing Firestore collection:', e);
       }
 
-      // 2. Clear local entries and blobs
+      // 2. Clear local state
+      allEntries = [];
       videoEntries = [];
       videoFileBlobs.clear();
 
       // 3. Synchronize UI
-      updateUI();
+      filterAndRenderEntries();
 
       if (systemStatusEl) {
-        systemStatusEl.textContent = 'READY';
+        systemStatusEl.textContent = 'FIREBASE CONNECTED';
         systemStatusEl.classList.remove('text-rose-400');
       }
     }
@@ -1076,7 +1180,7 @@
 
     // --- FIREBASE CLOUD STORAGE & FIRESTORE INTEGRATION WITH PROGRESS HUD ---
     function formatBytes(bytes) {
-      if (bytes === 0) return '0.0 MB';
+      if (!bytes || bytes === 0) return '0.0 MB';
       const megabytes = bytes / (1024 * 1024);
       if (megabytes >= 1024) {
         return (megabytes / 1024).toFixed(2) + ' GB';
@@ -1093,7 +1197,10 @@
       if (uploadBytesDisplay) uploadBytesDisplay.textContent = '0.0 / 0.0 MB';
       if (uploadSpeedDisplay) uploadSpeedDisplay.textContent = '-- MB/s';
       if (uploadEtaDisplay) uploadEtaDisplay.textContent = 'Calculating...';
-      if (uploadStatusMessage) uploadStatusMessage.textContent = 'Transmitting payload to Firebase Cloud Storage...';
+      if (uploadStatusMessage) {
+        uploadStatusMessage.textContent = 'Uploading to Firebase Cloud Storage...';
+        uploadStatusMessage.classList.remove('text-rose-400');
+      }
     }
 
     function updateUploadProgressMetrics(bytesTransferred, totalBytes, startTime) {
@@ -1129,7 +1236,7 @@
         filePathDisplay.value = `Uploading: ${file.name}...`;
       }
       if (systemStatusEl) {
-        systemStatusEl.textContent = 'SYNCING';
+        systemStatusEl.textContent = 'UPLOADING TO FIREBASE';
         systemStatusEl.classList.add('text-cyber-cyan');
       }
 
@@ -1137,86 +1244,63 @@
       const uploadStartTime = Date.now();
 
       try {
-        let downloadURL = '';
-        
-        // 1. Upload video file using uploadBytesResumable to track real-time progress
-        try {
-          const storageRef = ref(storage, `videos/${Date.now()}_${file.name}`);
-          const uploadTask = uploadBytesResumable(storageRef, file);
+        // 1. Upload video file to Firebase Cloud Storage using uploadBytesResumable
+        const storageRef = ref(storage, `videos/${Date.now()}_${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
 
-          downloadURL = await new Promise((resolve, reject) => {
-            uploadTask.on(
-              'state_changed',
-              (snapshot) => {
-                updateUploadProgressMetrics(snapshot.bytesTransferred, snapshot.totalBytes, uploadStartTime);
-              },
-              (error) => {
-                reject(error);
-              },
-              async () => {
-                try {
-                  if (uploadStatusMessage) uploadStatusMessage.textContent = 'Finalizing cloud database entry...';
-                  if (uploadProgressBarFill) uploadProgressBarFill.style.width = '100%';
-                  if (uploadPercentDisplay) uploadPercentDisplay.textContent = '100%';
-                  const url = await getDownloadURL(uploadTask.snapshot.ref);
-                  resolve(url);
-                } catch (e) {
-                  reject(e);
-                }
+        const downloadURL = await new Promise((resolve, reject) => {
+          uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+              updateUploadProgressMetrics(snapshot.bytesTransferred, snapshot.totalBytes, uploadStartTime);
+            },
+            (error) => {
+              console.error("Firebase Storage Upload Error:", error);
+              reject(error);
+            },
+            async () => {
+              try {
+                if (uploadStatusMessage) uploadStatusMessage.textContent = 'Saving entry to Firestore...';
+                if (uploadProgressBarFill) uploadProgressBarFill.style.width = '100%';
+                if (uploadPercentDisplay) uploadPercentDisplay.textContent = '100%';
+                const url = await getDownloadURL(uploadTask.snapshot.ref);
+                resolve(url);
+              } catch (e) {
+                reject(e);
               }
-            );
-          });
-        } catch (storageErr) {
-          console.warn('Storage upload error, simulating progress and using local Blob URL fallback:', storageErr);
-          
-          // Simulated smooth progress animation for environments with restricted bucket CORS
-          await new Promise((resolve) => {
-            let simProgress = 0;
-            const simInterval = setInterval(() => {
-              simProgress += 12;
-              const simBytes = Math.min(file.size, Math.round((simProgress / 100) * file.size));
-              updateUploadProgressMetrics(simBytes, file.size, uploadStartTime);
-              if (simProgress >= 100) {
-                clearInterval(simInterval);
-                resolve();
-              }
-            }, 60);
-          });
+            }
+          );
+        });
 
-          downloadURL = URL.createObjectURL(file);
-          videoFileBlobs.set(file.name, downloadURL);
-        }
+        // 2. Save video entry record into Firestore 'wheel_entries' collection with active: true
+        await addDoc(collection(db, ENTRIES_COLLECTION), {
+          name: file.name,
+          url: downloadURL,
+          active: true, // Default active boolean
+          createdAt: new Date().toISOString()
+        });
 
-        // 2. Save video entry record into Firestore database
-        if (currentUser) {
-          await addDoc(getEntriesCollection(), {
-            name: file.name,
-            url: downloadURL || '',
-            createdAt: new Date().toISOString()
-          });
-        } else {
-          videoEntries.push({ name: file.name, url: downloadURL });
-          updateUI();
-        }
+        videoFileBlobs.set(file.name, downloadURL);
 
-        if (uploadStatusMessage) uploadStatusMessage.textContent = 'Upload successful!';
+        // 3. Fetch entries back from Firestore to populate the wheel
+        await loadWheelEntries();
+
+        if (uploadStatusMessage) uploadStatusMessage.textContent = 'Upload complete! Synced with Firebase.';
         if (filePathDisplay) filePathDisplay.value = file.name;
         if (systemStatusEl) {
-          systemStatusEl.textContent = 'READY';
+          systemStatusEl.textContent = 'FIREBASE CONNECTED';
           systemStatusEl.classList.remove('text-cyber-cyan');
         }
 
-        // Small delay to let users see the 100% completion before closing
         await new Promise((resolve) => setTimeout(resolve, 600));
 
       } catch (err) {
-        console.error('Upload flow error:', err);
-        const localBlob = URL.createObjectURL(file);
-        videoFileBlobs.set(file.name, localBlob);
-        videoEntries.push({ name: file.name, url: localBlob });
-        updateUI();
-        if (filePathDisplay) filePathDisplay.value = file.name;
-        if (systemStatusEl) systemStatusEl.textContent = 'ONLINE (LOCAL)';
+        console.error('Firebase upload flow error:', err);
+        if (uploadStatusMessage) {
+          uploadStatusMessage.textContent = `Upload failed: ${err.message || 'Check Firebase rules/CORS'}`;
+          uploadStatusMessage.classList.add('text-rose-400');
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       } finally {
         if (currentIdx >= totalCount && uploadProgressModal) {
           closeModal(uploadProgressModal);
@@ -1224,67 +1308,111 @@
       }
     }
 
-    async function loadWheelEntries() {
-      if (!currentUser) return;
+    async function syncActiveFieldsInFirestore() {
       try {
-        // Simple collection query
-        const querySnapshot = await getDocs(getEntriesCollection());
-        const remoteEntries = [];
+        const querySnapshot = await getDocs(collection(db, ENTRIES_COLLECTION));
+        const migrationBatch = [];
+
         querySnapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          remoteEntries.push({
-            id: docSnap.id,
-            name: data.name || 'video_entry.mp4',
-            url: data.url || ''
-          });
+          // If the active field is missing from the document, add it in Firestore
+          if (data && data.active === undefined) {
+            const docRef = doc(db, ENTRIES_COLLECTION, docSnap.id);
+            migrationBatch.push(
+              updateDoc(docRef, { active: true }).catch((err) => {
+                console.warn(`Could not add active field to doc ${docSnap.id}:`, err);
+              })
+            );
+          }
         });
 
-        if (remoteEntries.length > 0) {
-          videoEntries = remoteEntries;
-        } else if (videoEntries.length === 0) {
-          // Initialize with demo clips if database is empty
-          videoEntries = DEFAULT_VIDEOS.map(name => ({ name }));
+        if (migrationBatch.length > 0) {
+          await Promise.all(migrationBatch);
+          console.log(`Firestore migration: Added active: true to ${migrationBatch.length} document(s) in ${ENTRIES_COLLECTION}.`);
         }
-        updateUI();
+      } catch (err) {
+        console.warn('Firestore active field migration check error:', err);
+      }
+    }
+
+    async function loadWheelEntries() {
+      try {
+        const querySnapshot = await getDocs(collection(db, ENTRIES_COLLECTION));
+        const remoteEntries = [];
+        const missingFieldUpdates = [];
+
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data && data.name) {
+            // If active field is not present in Firestore, queue an updateDoc to write it
+            if (data.active === undefined) {
+              missingFieldUpdates.push(
+                updateDoc(doc(db, ENTRIES_COLLECTION, docSnap.id), { active: true }).catch(err => console.warn(err))
+              );
+            }
+
+            const isActive = data.active !== undefined ? Boolean(data.active) : true;
+            remoteEntries.push({
+              id: docSnap.id,
+              name: data.name,
+              url: data.url || '',
+              active: isActive
+            });
+            if (data.url) {
+              videoFileBlobs.set(data.name, data.url);
+            }
+          }
+        });
+
+        if (missingFieldUpdates.length > 0) {
+          await Promise.all(missingFieldUpdates);
+        }
+
+        allEntries = remoteEntries;
+        filterAndRenderEntries();
       } catch (e) {
-        console.warn('loadWheelEntries error:', e);
-        if (videoEntries.length === 0) {
-          videoEntries = DEFAULT_VIDEOS.map(name => ({ name }));
-          updateUI();
-        }
+        console.warn('loadWheelEntries error from Firebase:', e);
+        filterAndRenderEntries();
       }
     }
 
     function setupRealtimeListener() {
-      if (!currentUser) return;
       try {
         onSnapshot(
-          getEntriesCollection(),
+          collection(db, ENTRIES_COLLECTION),
           (snapshot) => {
             const entries = [];
             snapshot.forEach((docSnap) => {
               const data = docSnap.data();
-              entries.push({
-                id: docSnap.id,
-                name: data.name || 'video_entry.mp4',
-                url: data.url || ''
-              });
+              if (data && data.name) {
+                // Default active is true if not present
+                const isActive = data.active !== undefined ? Boolean(data.active) : true;
+                entries.push({
+                  id: docSnap.id,
+                  name: data.name,
+                  url: data.url || '',
+                  active: isActive
+                });
+                if (data.url) {
+                  videoFileBlobs.set(data.name, data.url);
+                }
+              }
             });
-            if (entries.length > 0) {
-              videoEntries = entries;
-              updateUI();
-            }
+            allEntries = entries;
+            filterAndRenderEntries();
           },
           (error) => {
-            console.warn('Realtime listener error callback triggered:', error);
+            console.warn('Realtime Firebase snapshot listener notice:', error);
           }
         );
       } catch (e) {
-        console.warn('Failed to bind snapshot listener:', e);
+        console.warn('Failed to bind Firebase snapshot listener:', e);
       }
     }
 
     // --- WHEEL RENDERING ENGINE ---
+    let lastCalculatedWheelSize = 0;
+
     function resizeWheelCanvas() {
       if (!wheelCanvas) return;
       const container = wheelCanvas.parentElement;
@@ -1295,13 +1423,18 @@
       const measuredHeight = container.clientHeight || rect.height;
 
       const rawSize = Math.min(measuredWidth, measuredHeight);
-      const size = Math.max(rawSize > 0 ? rawSize : 380, 160);
+      const size = Math.floor(Math.max(rawSize > 0 ? rawSize : 380, 160));
+
       const dpr = window.devicePixelRatio || 1;
 
-      wheelCanvas.width = Math.round(size * dpr);
-      wheelCanvas.height = Math.round(size * dpr);
-      wheelCanvas.style.width = `${size}px`;
-      wheelCanvas.style.height = `${size}px`;
+      // Only update DOM styles and canvas buffer when the size actually changes
+      if (lastCalculatedWheelSize !== size || wheelCanvas.width !== size * dpr) {
+        lastCalculatedWheelSize = size;
+        wheelCanvas.width = size * dpr;
+        wheelCanvas.height = size * dpr;
+        wheelCanvas.style.width = `${size}px`;
+        wheelCanvas.style.height = `${size}px`;
+      }
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       drawWheel();
@@ -1309,32 +1442,38 @@
 
     function drawWheel() {
       if (!wheelCanvas || !ctx) return;
-      const size = parseFloat(wheelCanvas.style.width) || (wheelCanvas.width / (window.devicePixelRatio || 1)) || 380;
+      const container = wheelCanvas.parentElement;
+      const rect = container ? container.getBoundingClientRect() : null;
+      const measuredWidth = container ? (container.clientWidth || rect.width) : 380;
+      const measuredHeight = container ? (container.clientHeight || rect.height) : 380;
+      const size = Math.max(Math.min(measuredWidth, measuredHeight), 160);
+
       const centerX = size / 2;
       const centerY = size / 2;
       const radius = Math.max(size / 2 - 12, 30);
 
-      if (radius <= 0) return;
-
       ctx.clearRect(0, 0, size, size);
+
       const totalSegments = videoEntries.length;
 
       if (totalSegments === 0) {
         ctx.save();
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-        ctx.fillStyle = '#111722';
+        ctx.fillStyle = '#0a0e17';
         ctx.fill();
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = '#1f2937';
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#1e293b';
         ctx.stroke();
 
-        ctx.fillStyle = '#64748b';
-        ctx.font = '600 13px "JetBrains Mono"';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('[ NO ENTRIES LOADED ]', centerX, centerY - 65);
-        ctx.fillText('UPLOAD VIDEO FILES', centerX, centerY + 65);
+        ctx.font = '700 12px "JetBrains Mono"';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('[ NO ACTIVE VIDEO ENTRIES ]', centerX, centerY - 10);
+        ctx.font = '500 10px "JetBrains Mono"';
+        ctx.fillStyle = '#00e5ff';
+        ctx.fillText('UPLOAD VIDEOS OR ACTIVATE IN LIST', centerX, centerY + 12);
         ctx.restore();
         return;
       }
@@ -1437,14 +1576,14 @@
 
       const totalSegments = videoEntries.length;
       const arcSize = (2 * Math.PI) / totalSegments;
-      const winningIndex = Math.floor(Math.random() * totalSegments);
+      targetWinningIndex = Math.floor(Math.random() * totalSegments);
 
       spinDuration = parseInt(spinDurationSelect ? spinDurationSelect.value : '6000', 10) || 6000;
 
       const baseTurns = Math.max(5, Math.round((spinDuration / 1000) * 1.3));
       const extraFullTurns = (baseTurns + Math.floor(Math.random() * 3)) * 2 * Math.PI;
       const currentNorm = currentAngle % (2 * Math.PI);
-      const targetSegmentCenter = winningIndex * arcSize + arcSize / 2;
+      const targetSegmentCenter = targetWinningIndex * arcSize + arcSize / 2;
 
       let deltaAngle = (2 * Math.PI - targetSegmentCenter) - currentNorm;
       if (deltaAngle < 0) {
@@ -1485,14 +1624,19 @@
       if (progress < 1) {
         requestAnimationFrame(animationStep);
       } else {
-        finalizeSpin(currentSegmentIdx);
+        finalizeSpin(targetWinningIndex);
       }
     }
 
-    function finalizeSpin(winningIndex) {
+    async function finalizeSpin(winningIndex) {
       isSpinning = false;
       const winnerRecord = videoEntries[winningIndex];
       winningItem = getEntryName(winnerRecord) || 'Unknown Video';
+
+      // Ensure stream URL is cached for player
+      if (winnerRecord && winnerRecord.url) {
+        videoFileBlobs.set(winningItem, winnerRecord.url);
+      }
 
       resultsCount++;
       if (resultsCountEl) resultsCountEl.textContent = resultsCount;
@@ -1512,12 +1656,33 @@
       }
 
       if (modalWinningName) modalWinningName.textContent = winningItem;
+
+      // Automatically toggle active to false and hide from wheel upon winning
+      if (winnerRecord) {
+        winnerRecord.active = false;
+        
+        // Ensure the record in allEntries also updates its active state
+        const fullRecord = allEntries.find(e => e && (e.id === winnerRecord.id || getEntryName(e) === winningItem));
+        if (fullRecord) fullRecord.active = false;
+
+        // Immediately update wheel slices and UI
+        filterAndRenderEntries();
+
+        // Persist active: false to Firestore
+        if (winnerRecord.id) {
+          try {
+            await updateDoc(doc(db, ENTRIES_COLLECTION, winnerRecord.id), { active: false });
+          } catch (e) {
+            console.warn('Error setting active to false on win in Firestore:', e);
+          }
+        }
+
+        if (eliminatedBadge) eliminatedBadge.classList.remove('hidden');
+        if (removeWinnerBtn) removeWinnerBtn.classList.add('hidden');
+      }
+
       openModal(winnerModal);
       startAutoPlayCountdown(winningItem);
-
-      if (eliminateToggle && eliminateToggle.checked && removeWinnerBtn) {
-        removeWinnerBtn.classList.add('ring-2', 'ring-rose-500');
-      }
     }
 
     // --- 5-SECOND COUNTDOWN & PLAYBACK TRIGGER ---
@@ -1563,8 +1728,8 @@
       if (playerVideoTitle) playerVideoTitle.textContent = fileName;
       if (simulatedFileName) simulatedFileName.textContent = fileName;
 
-      // Check if entry has a direct Firebase Cloud Storage URL or local blob URL
-      const entryObj = videoEntries.find(e => getEntryName(e) === fileName);
+      // Check if entry has a direct Firebase Cloud Storage URL from allEntries or cached blobs
+      const entryObj = allEntries.find(e => getEntryName(e) === fileName) || videoEntries.find(e => getEntryName(e) === fileName);
       const mediaUrl = (entryObj && entryObj.url) ? entryObj.url : videoFileBlobs.get(fileName);
 
       if (mediaUrl) {
@@ -1723,14 +1888,29 @@
     }
 
     if (saveEditBtn && rawTextEditor && quickTextEditorWrapper && videoListContainer) {
-      saveEditBtn.addEventListener('click', () => {
+      saveEditBtn.addEventListener('click', async () => {
         const lines = rawTextEditor.value
           .split('\n')
           .map(line => line.trim())
           .filter(line => line.length > 0);
 
-        videoEntries = lines.map(name => ({ name }));
-        updateUI();
+        try {
+          for (const line of lines) {
+            const exists = allEntries.some(e => getEntryName(e) === line);
+            if (!exists) {
+              await addDoc(collection(db, ENTRIES_COLLECTION), {
+                name: line,
+                url: '',
+                active: true, // Default is active is true
+                createdAt: new Date().toISOString()
+              });
+            }
+          }
+          await loadWheelEntries();
+        } catch (e) {
+          console.warn('Firestore bulk add error:', e);
+        }
+
         quickTextEditorWrapper.classList.add('hidden');
         videoListContainer.classList.remove('hidden');
       });
@@ -1746,11 +1926,13 @@
       });
     }
 
-    if (loadSampleBtn) {
-      loadSampleBtn.addEventListener('click', () => {
-        videoEntries = DEFAULT_VIDEOS.map(name => ({ name }));
-        updateUI();
-        if (filePathDisplay) filePathDisplay.value = '/var/media/demo_cluster/';
+    if (eliminateToggle) {
+      const savedEliminate = localStorage.getItem('eliminateWinnerOnStop');
+      if (savedEliminate !== null) {
+        eliminateToggle.checked = savedEliminate === 'true';
+      }
+      eliminateToggle.addEventListener('change', (e) => {
+        localStorage.setItem('eliminateWinnerOnStop', e.target.checked.toString());
       });
     }
 
@@ -1846,7 +2028,7 @@
       removeWinnerBtn.addEventListener('click', () => {
         clearAutoPlayCountdown();
         if (winningItem) {
-          const index = videoEntries.findIndex(e => getEntryName(e) === winningItem);
+          const index = allEntries.findIndex(e => getEntryName(e) === winningItem);
           if (index > -1) {
             removeEntryByIndex(index);
           }
@@ -1905,12 +2087,14 @@
           const credential = await signInAnonymously(auth);
           currentUser = credential.user;
         }
-        if (systemStatusEl) systemStatusEl.textContent = 'CLOUD SYNCED';
+        if (systemStatusEl) systemStatusEl.textContent = 'FIREBASE CONNECTED';
       } catch (authErr) {
         console.warn('Anonymous auth note:', authErr);
-        currentUser = { uid: 'guest-session' };
-        if (systemStatusEl) systemStatusEl.textContent = 'LOCAL READY';
+        if (systemStatusEl) systemStatusEl.textContent = 'FIREBASE READY';
       }
+
+      // Scan and update all existing documents in Firestore missing the active field
+      await syncActiveFieldsInFirestore();
 
       // Load Firestore entries and initialize real-time snapshot listener
       await loadWheelEntries();
@@ -1921,8 +2105,12 @@
       });
 
       if (window.ResizeObserver && wheelCanvas.parentElement) {
+        let resizeRafId = null;
         const resizeObserver = new ResizeObserver(() => {
-          resizeWheelCanvas();
+          if (resizeRafId) cancelAnimationFrame(resizeRafId);
+          resizeRafId = requestAnimationFrame(() => {
+            resizeWheelCanvas();
+          });
         });
         resizeObserver.observe(wheelCanvas.parentElement);
       }
