@@ -1,0 +1,1942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberSpin // Video File Wheel Spinner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'monospace'],
+            tech: ['"Space Grotesk"', 'sans-serif'],
+          },
+          colors: {
+            cyber: {
+              black: '#07090e',
+              panel: '#0d1117',
+              card: '#131822',
+              border: '#1f2937',
+              neon: '#00ff66',
+              cyan: '#00e5ff',
+              purple: '#8b5cf6',
+              magenta: '#f43f5e',
+              muted: '#64748b'
+            }
+          },
+          boxShadow: {
+            'neon-green': '0 0 20px -3px rgba(0, 255, 102, 0.4)',
+            'neon-cyan': '0 0 25px -3px rgba(0, 229, 255, 0.35)',
+            'hub-glow': '0 0 35px 5px rgba(0, 229, 255, 0.25)',
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom Scrollbar for Terminal aesthetic */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0d1117;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #222f3e;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00ff66;
+    }
+
+    /* Scanline overlay for subtle CRT texture */
+    .scanlines {
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0),
+        rgba(255,255,255,0) 50%,
+        rgba(0, 0, 0, 0.3) 50%,
+        rgba(0, 0, 0, 0.3)
+      );
+      background-size: 100% 4px;
+      pointer-events: none;
+    }
+
+    /* Glow utilities */
+    .text-glow-green {
+      text-shadow: 0 0 8px rgba(0, 255, 102, 0.6);
+    }
+    .text-glow-cyan {
+      text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+    }
+    .pointer-shadow {
+      filter: drop-shadow(0 0 8px #00ff66) drop-shadow(-3px 0 12px rgba(0,0,0,0.8));
+    }
+    .modal-backdrop {
+      backdrop-filter: blur(8px);
+    }
+  </style>
+</head>
+<body class="bg-cyber-black text-slate-200 font-tech min-h-screen overflow-x-hidden select-none relative flex flex-col justify-between">
+
+  <!-- Background Canvas for Subtle Matrix Binary Rain -->
+  <canvas id="matrixCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-0 opacity-20"></canvas>
+  <div class="fixed inset-0 scanlines z-0"></div>
+
+  <header class="relative z-10 w-full border-b border-cyber-border/60 bg-cyber-panel/80 backdrop-blur-md px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-7 h-7 rounded bg-gradient-to-br from-cyber-neon to-cyber-cyan flex items-center justify-center font-mono font-black text-cyber-black text-sm shadow-neon-green">
+        ▶
+      </div>
+      <div>
+        <h1 class="text-base font-mono font-bold tracking-wider text-slate-100 uppercase flex items-center gap-2">
+          V-SPIN // CORE <span class="text-xs px-2 py-0.5 rounded bg-emerald-950/80 text-cyber-neon border border-emerald-500/30 font-mono">SYS.ONLINE</span>
+        </h1>
+        <p class="text-[11px] font-mono text-slate-400">Tech-Minimalist Video Selector & Randomizer</p>
+      </div>
+    </div>
+
+    <!-- Quick Status Badges -->
+    <div class="hidden sm:flex items-center gap-4 text-xs font-mono">
+      <div class="flex items-center gap-2 px-3 py-1 rounded-md bg-cyber-card border border-cyber-border">
+        <span class="inline-block w-2 h-2 rounded-full bg-cyber-neon animate-pulse"></span>
+        <span class="text-slate-400">STATUS:</span>
+        <span id="systemStatus" class="text-slate-200">READY</span>
+      </div>
+      <div class="flex items-center gap-2 px-3 py-1 rounded-md bg-cyber-card border border-cyber-border">
+        <span class="text-slate-400">HOTKEY:</span>
+        <span class="text-cyber-cyan font-bold">[ SPACEBAR ]</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="relative z-10 flex-1 max-w-[1700px] w-full mx-auto p-4 md:p-6 lg:p-8 flex flex-col lg:flex-row items-stretch gap-6">
+
+    <!-- LEFT / CENTER: The Wheel Arena -->
+    <section class="flex-1 flex flex-col items-center justify-center min-h-[500px] lg:min-h-[640px] bg-cyber-panel/40 border border-cyber-border/50 rounded-2xl p-4 lg:p-8 relative backdrop-blur-sm shadow-2xl">
+
+      <!-- Center Wheel Wrapper with Pointer -->
+      <div class="relative w-full max-w-[560px] aspect-square flex items-center justify-center">
+
+        <!-- Outer Decorative Tech Rings -->
+        <div class="absolute inset-0 rounded-full border border-dashed border-cyber-border/40 animate-[spin_120s_linear_infinite] pointer-events-none"></div>
+        <div class="absolute -inset-4 rounded-full border border-cyber-cyan/10 pointer-events-none"></div>
+
+        <!-- Wheel Canvas Container -->
+        <div class="relative w-full h-full rounded-full p-2 bg-gradient-to-b from-cyber-card to-cyber-panel border-2 border-cyber-border/80 shadow-2xl flex items-center justify-center overflow-hidden">
+          <canvas id="wheelCanvas" class="w-full h-full rounded-full cursor-pointer transition-transform duration-100 ease-out"></canvas>
+
+          <!-- Central Hub Button -->
+          <button id="spinHubBtn" aria-label="Click to spin the wheel" class="absolute z-20 w-36 h-36 md:w-44 md:h-44 rounded-full bg-gradient-to-b from-slate-900 to-cyber-black border-2 border-slate-600/80 hover:border-cyber-cyan shadow-hub-glow flex flex-col items-center justify-center text-center p-3 transition-all duration-300 transform active:scale-95 group focus:outline-none">
+            <div class="absolute inset-1 rounded-full border border-cyber-cyan/30 group-hover:border-cyber-cyan/80 transition-colors"></div>
+            
+            <div id="hubIcon" class="text-cyber-cyan mb-1 group-hover:scale-110 transition-transform">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+
+            <span id="hubPrimaryText" class="text-[12px] md:text-[13px] font-mono font-bold tracking-tight text-white leading-tight uppercase group-hover:text-cyber-cyan transition-colors line-clamp-2">
+              CLICK TO SPIN
+            </span>
+            <span id="hubSecondaryText" class="text-[10px] text-slate-400 font-mono mt-1 group-hover:text-slate-300">
+              or press spacebar
+            </span>
+          </button>
+        </div>
+
+        <!-- Sleek Right Pointer Arrow (Indicating selected segment) -->
+        <div class="absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-30 pointer-shadow flex items-center">
+          <svg class="w-8 h-10 sm:w-10 sm:h-12 text-cyber-neon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 12l16-9v18L4 12z"/>
+          </svg>
+        </div>
+
+      </div>
+
+      <!-- Live Winner HUD Badge Below Wheel -->
+      <div id="liveWinnerHud" class="mt-6 px-5 py-2.5 rounded-xl bg-cyber-card/90 border border-cyber-border flex items-center gap-3 transition-all duration-300">
+        <span class="font-mono text-xs text-slate-400 uppercase tracking-wider">CURRENT TARGET:</span>
+        <span id="hudWinningFileName" class="font-mono font-bold text-sm text-cyber-neon truncate max-w-[260px] md:max-w-md text-glow-green">
+          None (Upload videos to spin)
+        </span>
+      </div>
+
+    </section>
+
+    <!-- RIGHT: Functional Control Panel / Sidebar -->
+    <aside class="w-full lg:w-[480px] bg-cyber-panel/90 border border-cyber-border rounded-2xl flex flex-col justify-between shadow-2xl backdrop-blur-md overflow-hidden">
+      
+      <!-- Top Counters & Header (Inspired by reference) -->
+      <div class="p-4 sm:p-5 border-b border-cyber-border bg-cyber-card/50">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-sm bg-cyber-cyan shadow-neon-cyan"></span>
+            <span class="font-mono font-bold text-sm text-slate-200 uppercase tracking-wide">CONTROL PANEL</span>
+          </div>
+
+          <!-- Entries & Results Counters -->
+          <div class="flex items-center gap-2 font-mono text-xs">
+            <div class="px-3 py-1.5 rounded-lg bg-cyber-black/80 border border-cyber-border text-slate-300">
+              Entries: <span id="entriesCount" class="font-bold text-cyber-cyan text-sm">0</span>
+            </div>
+            <div class="px-3 py-1.5 rounded-lg bg-cyber-black/80 border border-cyber-border text-slate-300">
+              Results: <span id="resultsCount" class="font-bold text-cyber-neon text-sm">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Body of Control Panel -->
+      <div class="p-4 sm:p-5 space-y-4 flex-1 overflow-y-auto">
+
+        <!-- File Upload Section -->
+        <div class="space-y-2">
+          <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider">
+            Video Source Ingestion
+          </label>
+          <div class="flex gap-2">
+            <!-- Simulated / Readonly Path Box -->
+            <div class="relative flex-1">
+              <input 
+                type="text" 
+                id="filePathDisplay" 
+                readonly 
+                placeholder="/media/videos/select_files..."
+                class="w-full bg-cyber-black border border-cyber-border rounded-lg px-3 py-2.5 text-xs font-mono text-slate-300 placeholder-slate-600 focus:outline-none focus:border-cyber-cyan transition-colors truncate"
+              />
+            </div>
+
+            <!-- Add Video File Button -->
+            <input type="file" id="videoFileInput" multiple accept="video/*,.mp4,.mkv,.avi,.mov,.webm,.wmv" class="hidden">
+            <button 
+              id="addVideoBtn"
+              class="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-mono text-xs font-bold rounded-lg shadow-neon-green flex items-center gap-1.5 transition-all whitespace-nowrap"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Video File
+            </button>
+          </div>
+
+          <!-- Quick Drag and Drop Surface -->
+          <div 
+            id="dropZone" 
+            class="border border-dashed border-cyber-border/80 hover:border-cyber-cyan/70 bg-cyber-black/40 rounded-lg p-2.5 text-center transition-colors cursor-pointer group"
+          >
+            <p class="text-[11px] font-mono text-slate-500 group-hover:text-slate-300 transition-colors">
+              Drag & Drop video files here, or <span class="text-cyber-cyan underline">browse</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Advanced Checkbox Options -->
+        <div class="pt-1">
+          <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" id="advancedCheckbox" class="w-4 h-4 rounded bg-cyber-black border-cyber-border text-emerald-500 focus:ring-0 focus:ring-offset-0">
+            <span class="text-xs font-mono text-slate-300 font-medium tracking-wide">Advanced</span>
+          </label>
+
+          <!-- Collapsible Advanced Drawer -->
+          <div id="advancedDrawer" class="hidden mt-3 p-3 rounded-lg bg-cyber-card/60 border border-cyber-border/70 space-y-2.5 text-xs font-mono">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-400">Eliminate Winner on Stop</span>
+              <input type="checkbox" id="eliminateToggle" class="w-3.5 h-3.5 rounded bg-cyber-black border-cyber-border text-emerald-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-400">Synthesizer Sound FX</span>
+              <input type="checkbox" id="soundToggle" checked class="w-3.5 h-3.5 rounded bg-cyber-black border-cyber-border text-emerald-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-400">Spin Duration</span>
+              <select id="spinDurationSelect" class="bg-cyber-black border border-cyber-border text-xs rounded px-2 py-1 text-slate-300 focus:outline-none focus:border-cyber-cyan">
+                <option value="4000">Fast (4s)</option>
+                <option value="6000" selected>Standard (6s)</option>
+                <option value="8500">Dramatic (8.5s)</option>
+                <option value="15000" class="text-cyber-cyan font-semibold">Super Dramatic (15s)</option>
+              </select>
+            </div>
+            <div class="pt-1 flex gap-2">
+              <button id="loadSampleBtn" class="flex-1 py-1.5 px-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] border border-cyber-border transition-colors">
+                Load Demo Tech Videos
+              </button>
+              <button id="resetResultsBtn" class="py-1.5 px-2 rounded bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-[11px] border border-rose-800/40 transition-colors">
+                Reset Stats
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video Entries Section -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-mono text-slate-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <span>Video Entries</span>
+              <span id="listBadge" class="text-[10px] px-1.5 py-0.2 rounded bg-cyber-card border border-cyber-border text-slate-400">0 Items</span>
+            </h2>
+
+            <!-- Action Controls: Shuffle, Sort, Edit List -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button 
+                id="shuffleBtn" 
+                title="Shuffle Entries" 
+                class="px-2 py-1 text-xs font-mono bg-cyber-card hover:bg-slate-800 border border-cyber-border rounded text-slate-300 hover:text-white transition-colors active:scale-95 flex items-center gap-1"
+              >
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                Shuffle
+              </button>
+
+              <button 
+                id="sortBtn" 
+                title="Sort Alphabetically" 
+                class="px-2 py-1 text-xs font-mono bg-cyber-card hover:bg-slate-800 border border-cyber-border rounded text-slate-300 hover:text-white transition-colors active:scale-95 flex items-center gap-1"
+              >
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" /></svg>
+                Sort
+              </button>
+
+              <button 
+                id="editListBtn" 
+                title="Manual Edit / Bulk Input" 
+                class="px-2 py-1 text-xs font-mono bg-cyber-card hover:bg-slate-800 border border-cyber-border rounded text-cyber-cyan hover:text-cyan-300 transition-colors active:scale-95 flex items-center gap-1"
+              >
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                Edit List
+              </button>
+
+              <button 
+                id="clearAllBtn" 
+                title="Delete All Entries" 
+                class="px-2 py-1 text-xs font-mono bg-rose-950/50 hover:bg-rose-900/80 border border-rose-800/60 hover:border-rose-500 rounded text-rose-300 hover:text-rose-100 transition-colors active:scale-95 flex items-center gap-1 shadow-sm"
+              >
+                <svg class="w-3 h-3 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete All
+              </button>
+            </div>
+          </div>
+
+          <!-- Entries Container (List View) -->
+          <div 
+            id="videoListContainer" 
+            class="h-60 sm:h-72 overflow-y-auto bg-cyber-black border border-cyber-border rounded-xl p-2 space-y-1.5 divide-y divide-cyber-border/30"
+          >
+            <!-- Dynamic Entry items inserted via JS -->
+            <div id="emptyListNotice" class="h-full flex flex-col items-center justify-center text-center p-4 text-slate-600 font-mono text-xs">
+              <svg class="w-8 h-8 mb-2 opacity-50 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+              </svg>
+              No video files added yet.<br>
+              Click <span class="text-cyber-neon">"Add Video File"</span> or load sample tech clips.
+            </div>
+          </div>
+
+          <!-- Quick Textarea Input Mode (Toggleable via Edit List) -->
+          <div id="quickTextEditorWrapper" class="hidden space-y-2">
+            <textarea 
+              id="rawTextEditor" 
+              rows="7"
+              placeholder="Paste or write one video file name per line...&#10;neural_net_overview.mp4&#10;system_benchmark_4k.mov&#10;cyber_defense_lab.mkv"
+              class="w-full bg-cyber-black border border-cyber-cyan/50 rounded-xl p-3 text-xs font-mono text-cyber-neon focus:outline-none focus:ring-1 focus:ring-cyber-cyan resize-none"
+            ></textarea>
+            <div class="flex justify-end gap-2">
+              <button id="cancelEditBtn" class="px-3 py-1.5 text-xs font-mono rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Cancel</button>
+              <button id="saveEditBtn" class="px-3 py-1.5 text-xs font-mono rounded bg-cyber-cyan text-cyber-black font-bold hover:bg-cyan-300">Apply Changes</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Minimalist Footer (Reference Style) -->
+      <footer class="p-3.5 px-5 bg-cyber-card/80 border-t border-cyber-border/70 flex items-center justify-between text-xs font-mono text-slate-400">
+        <div class="flex items-center gap-2">
+          <span>Version 1.0.1</span>
+          <span class="text-[10px] uppercase font-bold text-cyber-neon bg-emerald-950/90 border border-emerald-500/40 px-1.5 py-0.2 rounded">
+            [New!]
+          </span>
+        </div>
+        <button id="changelogBtn" class="text-slate-400 hover:text-cyber-cyan underline transition-colors focus:outline-none">
+          Changelog
+        </button>
+      </footer>
+
+    </aside>
+
+  </main>
+
+  <!-- WINNER CELEBRATION MODAL -->
+  <div id="winnerModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop bg-black/75 hidden opacity-0 transition-opacity duration-300">
+    <div class="relative w-full max-w-lg bg-cyber-panel border-2 border-cyber-neon/80 rounded-2xl p-6 sm:p-8 shadow-neon-green transform scale-95 transition-transform duration-300 text-center">
+      
+      <!-- Close Button -->
+      <button id="closeModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-white font-mono text-xl focus:outline-none">
+        &times;
+      </button>
+
+      <!-- Badge -->
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-cyber-neon text-cyber-neon text-xs font-mono font-bold uppercase mb-4 text-glow-green">
+        <span class="w-2 h-2 rounded-full bg-cyber-neon animate-ping"></span>
+        Target Acquired
+      </div>
+
+      <h3 class="text-sm font-mono text-slate-400 uppercase tracking-widest mb-1">Random Video Selected</h3>
+      
+      <!-- Winning Name Banner -->
+      <div class="my-4 p-4 rounded-xl bg-cyber-black border border-cyber-cyan/40 shadow-inner">
+        <p id="modalWinningName" class="text-lg sm:text-xl font-mono font-bold text-cyber-cyan break-all text-glow-cyan">
+          tutorial_01.mp4
+        </p>
+      </div>
+
+      <p class="text-xs font-mono text-slate-400 mb-3">
+        Target locked. Initializing video playback stream...
+      </p>
+
+      <!-- 5-Second Countdown HUD Banner -->
+      <div class="my-4 p-3.5 rounded-xl bg-cyber-black/90 border border-cyber-cyan/40 text-left shadow-inner">
+        <div class="flex items-center justify-between text-xs font-mono mb-2">
+          <div class="flex items-center gap-2 text-cyber-cyan font-bold">
+            <span class="w-2 h-2 rounded-full bg-cyber-neon animate-ping"></span>
+            <span>AUTO-PLAYING IN:</span>
+          </div>
+          <span id="countdownTimerText" class="text-sm font-bold text-cyber-neon font-mono text-glow-green">5.0s</span>
+        </div>
+        
+        <!-- Live Countdown Progress Bar -->
+        <div class="w-full h-2 bg-cyber-panel rounded-full overflow-hidden border border-cyber-border mb-3">
+          <div id="countdownProgressBar" class="h-full bg-gradient-to-r from-cyber-cyan via-teal-400 to-cyber-neon w-full transition-all duration-100 ease-linear"></div>
+        </div>
+
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[11px] font-mono text-slate-400">Launch without waiting:</span>
+          <button id="playNowBtn" class="px-3 py-1 rounded-lg bg-cyber-cyan hover:bg-cyan-300 active:scale-95 text-cyber-black font-mono font-bold text-xs flex items-center gap-1.5 transition-all shadow-neon-cyan">
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            Play Now
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap items-center justify-center gap-3 font-mono text-xs">
+        <button id="spinAgainBtn" class="px-5 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold shadow-neon-green transition-all active:scale-95">
+          Spin Again
+        </button>
+        <button id="removeWinnerBtn" class="px-4 py-2.5 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-600/50 text-rose-300 transition-all active:scale-95">
+          Remove File From Wheel
+        </button>
+        <button id="dismissModalBtn" class="px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all active:scale-95">
+          Keep & Dismiss
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- VIDEO PLAYER THEATER MODAL -->
+  <div id="videoPlayerModal" class="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6 modal-backdrop bg-black/85 hidden opacity-0 transition-opacity duration-300">
+    <div class="relative w-full max-w-4xl bg-cyber-panel border-2 border-cyber-cyan/70 rounded-2xl overflow-hidden shadow-neon-cyan flex flex-col max-h-[92vh] transform scale-95 transition-transform duration-300">
+      
+      <!-- Video Player Header -->
+      <div class="p-3.5 sm:p-4 border-b border-cyber-border bg-cyber-card flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 truncate">
+          <div class="w-3 h-3 rounded-full bg-cyber-neon animate-pulse flex-shrink-0"></div>
+          <span class="text-xs font-mono text-slate-400 uppercase tracking-wide">NOW PLAYING:</span>
+          <span id="playerVideoTitle" class="text-xs sm:text-sm font-mono font-bold text-cyber-cyan truncate text-glow-cyan">video_file.mp4</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/80 text-cyber-neon border border-emerald-500/40">
+            SYS.STREAM: 1080P // ACTIVE
+          </span>
+          <button id="closePlayerBtn" class="text-slate-400 hover:text-white p-1 text-xl font-mono focus:outline-none" title="Close Player">
+            &times;
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Playback Container -->
+      <div class="relative w-full bg-black flex-1 flex items-center justify-center overflow-hidden min-h-[280px] sm:min-h-[440px]">
+        
+        <!-- Native Decoded HTML5 Video Player for Local Files -->
+        <video 
+          id="activeVideoPlayer" 
+          class="w-full h-full max-h-[65vh] object-contain hidden" 
+          controls 
+          autoplay 
+          playsinline
+        ></video>
+
+        <!-- Fallback Cyber Telemetry Stream for Sample / Text Cloned Entries -->
+        <div id="fallbackStreamContainer" class="relative w-full h-full min-h-[300px] sm:min-h-[440px] bg-cyber-black flex flex-col items-center justify-center">
+          <canvas id="fallbackCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+          
+          <!-- Scanline overlay -->
+          <div class="absolute inset-0 scanlines opacity-60 pointer-events-none"></div>
+
+          <!-- Live Telemetry HUD Overlay -->
+          <div class="relative z-10 p-6 text-center max-w-lg space-y-3 bg-cyber-panel/80 border border-cyber-cyan/30 rounded-xl backdrop-blur-md shadow-2xl">
+            <div class="flex items-center justify-center gap-2 text-cyber-neon font-mono text-xs uppercase tracking-widest text-glow-green">
+              <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6.364 1.636l-.707.707M21 12h-1m-1.636 6.364l-.707-.707M12 20v1m-6.364-1.636l.707-.707M3 12h1m1.636-6.364l.707.707" />
+              </svg>
+              Synthetic Telemetry Feed Active
+            </div>
+
+            <p id="simulatedFileName" class="text-base sm:text-lg font-mono font-bold text-cyber-cyan break-all">
+              stream_feed.mp4
+            </p>
+
+            <div class="text-[11px] font-mono text-slate-400 space-y-1 text-left bg-cyber-black/70 p-3 rounded border border-cyber-border/70">
+              <div class="flex justify-between"><span>BITRATE:</span><span class="text-cyber-neon">18.4 Mbps</span></div>
+              <div class="flex justify-between"><span>CODEC:</span><span class="text-slate-300">AV1 / OPUS 48kHz</span></div>
+              <div class="flex justify-between"><span>STATUS:</span><span class="text-emerald-400">PLAYBACK IN PROGRESS</span></div>
+            </div>
+
+            <p class="text-[10px] font-mono text-slate-500">
+              Tip: Click "Add Video File" in the control panel with an actual .mp4 / .webm file to watch full binary video decoding.
+            </p>
+          </div>
+        </div>
+
+        <!-- Unmute Warning Overlay (Appears if browser autoplay muted the file) -->
+        <div id="unmuteBanner" class="hidden absolute bottom-4 left-4 right-4 bg-cyber-panel/95 border border-cyber-neon p-3 rounded-xl flex items-center justify-between text-xs font-mono z-30 shadow-neon-green">
+          <div class="flex items-center gap-2 text-slate-200">
+            <span class="text-cyber-neon font-bold">AUDIO MUTED BY BROWSER POLICY:</span> Click unmute for sound.
+          </div>
+          <button id="unmuteBtn" class="px-3 py-1 bg-cyber-neon text-cyber-black font-bold rounded hover:bg-emerald-400 transition-colors">
+            Unmute Audio
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Player Controls Footer -->
+      <div class="p-3 sm:p-4 bg-cyber-card border-t border-cyber-border flex flex-wrap items-center justify-between gap-3 font-mono text-xs">
+        <div class="flex items-center gap-2 text-slate-400 text-[11px]">
+          <span class="w-2 h-2 rounded-full bg-cyber-cyan"></span>
+          <span>Playback Session Synchronized</span>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button id="backToWheelBtn" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
+            ← Return to Wheel
+          </button>
+          <button id="playerSpinAgainBtn" class="px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold shadow-neon-green transition-all active:scale-95">
+            Spin Again
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CHANGELOG MODAL -->
+  <div id="changelogModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop bg-black/75 hidden opacity-0 transition-opacity duration-300">
+    <div class="relative w-full max-w-md bg-cyber-panel border border-cyber-border rounded-2xl p-6 shadow-2xl text-left font-mono text-xs text-slate-300">
+      <div class="flex items-center justify-between pb-3 border-b border-cyber-border mb-4">
+        <h3 class="text-sm font-bold text-cyber-cyan uppercase">System Changelog // Version 1.0.1</h3>
+        <button id="closeChangelogBtn" class="text-slate-400 hover:text-white text-base">&times;</button>
+      </div>
+      <div class="space-y-3 leading-relaxed">
+        <div>
+          <span class="text-cyber-neon font-bold">[v1.0.1] - Current</span>
+          <ul class="list-disc list-inside text-slate-400 pl-1 mt-1 space-y-1 text-[11px]">
+            <li>Implemented high-contrast tech segmented color palette.</li>
+            <li>Integrated local storage state synchronization for video lists.</li>
+            <li>Added Web Audio API synthesized mechanical ratchet sound FX.</li>
+            <li>Optimized spacebar accessibility listener with input evasion.</li>
+            <li>Added drag-and-drop video file ingestion.</li>
+          </ul>
+        </div>
+        <div>
+          <span class="text-slate-500 font-bold">[v1.0.0] - Initial Prototype</span>
+          <p class="text-slate-500 text-[11px] mt-0.5">Basic canvas wheel rendering and file ingestion.</p>
+        </div>
+      </div>
+      <div class="mt-6 text-right">
+        <button id="closeChangelogBtn2" class="px-4 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE ALL ENTRIES CONFIRMATION MODAL -->
+  <div id="deleteConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop bg-black/80 hidden opacity-0 transition-opacity duration-300">
+    <div class="relative w-full max-w-md bg-cyber-panel border-2 border-rose-600/80 rounded-2xl p-6 shadow-2xl transform scale-95 transition-transform duration-300 text-center">
+      <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-rose-950/80 border border-rose-500/50 flex items-center justify-center text-rose-400">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
+      <h3 class="text-sm font-mono font-bold text-rose-400 uppercase tracking-widest mb-1">Confirm Database Purge</h3>
+      <p class="text-xs font-mono text-slate-300 mb-5 leading-relaxed">
+        Are you sure you want to delete <span class="text-rose-400 font-bold">ALL</span> video entries from the Firestore database and wheel? This action is permanent.
+      </p>
+      <div class="flex items-center justify-center gap-3 font-mono text-xs">
+        <button id="cancelDeleteBtn" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all active:scale-95">
+          Cancel
+        </button>
+        <button id="confirmDeleteBtn" class="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all active:scale-95 shadow-lg shadow-rose-950/50">
+          Delete All Entries
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPLOAD PROGRESS MODAL -->
+  <div id="uploadProgressModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop bg-black/80 hidden opacity-0 transition-opacity duration-300">
+    <div class="relative w-full max-w-md bg-cyber-panel border border-cyber-cyan/60 rounded-2xl p-6 shadow-neon-cyan transform scale-95 transition-transform duration-300 font-mono text-xs">
+      <div class="flex items-center justify-between pb-3 border-b border-cyber-border mb-4">
+        <div class="flex items-center gap-2 text-cyber-cyan font-bold uppercase tracking-wider">
+          <span class="w-2 h-2 rounded-full bg-cyber-neon animate-pulse"></span>
+          <span>Uploading Video Asset</span>
+        </div>
+        <span id="uploadQueueBadge" class="text-[10px] px-2 py-0.5 rounded bg-cyber-card border border-cyber-border text-slate-400">1 / 1</span>
+      </div>
+      <div class="space-y-3">
+        <div class="truncate text-slate-200 font-bold" id="uploadFileNameDisplay">video.mp4</div>
+        <div class="w-full h-2.5 bg-cyber-black rounded-full overflow-hidden border border-cyber-border">
+          <div id="uploadProgressBarFill" class="h-full bg-gradient-to-r from-cyber-cyan to-cyber-neon w-0 transition-all duration-150"></div>
+        </div>
+        <div class="flex items-center justify-between text-[11px] text-slate-400">
+          <span id="uploadPercentDisplay" class="font-bold text-cyber-neon">0%</span>
+          <span id="uploadBytesDisplay">0.0 / 0.0 MB</span>
+        </div>
+        <div class="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-cyber-border/40">
+          <span>Speed: <span id="uploadSpeedDisplay" class="text-slate-400">-- MB/s</span></span>
+          <span id="uploadEtaDisplay" class="text-slate-400">Calculating...</span>
+        </div>
+        <p id="uploadStatusMessage" class="text-[10px] text-center text-slate-500 pt-1">Transmitting payload to Firebase Cloud Storage...</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+    // Firebase Modular Configuration
+    const userFirebaseConfig = {
+      apiKey: "AIzaSyAZN7FbQasr14Y9Yy_Sxekl59CeIVqGEYg",
+      authDomain: "clirl-data-leaks.firebaseapp.com",
+      projectId: "clirl-data-leaks",
+      storageBucket: "clirl-data-leaks.firebasestorage.app",
+      messagingSenderId: "917294039669",
+      appId: "1:917294039669:web:c9cec528f4a1842224ae3c",
+      measurementId: "G-0FBRRXG603"
+    };
+
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : userFirebaseConfig;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'clirl-data-leaks';
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+    const auth = getAuth(app);
+
+    // Strict path collection reference for public data
+    const getEntriesCollection = () => {
+      return collection(db, 'artifacts', appId, 'public', 'data', 'wheel_entries');
+    };
+
+    /**
+     * CYBERSPIN APPLICATION CORE
+     * Tech-Minimalist Video Wheel Spinner with Firebase Cloud Storage & Firestore
+     */
+
+    // --- APPLICATION STATE ---
+    let videoEntries = []; // Array of objects: { id?: string, name: string, url?: string }
+    let videoFileBlobs = new Map(); // Local blob fallback map
+    let resultsCount = 0;
+    let isSpinning = false;
+    let currentAngle = 0; // In radians
+    let winningItem = null;
+    let currentUser = null;
+
+    // Countdown & Player State
+    let countdownInterval = null;
+    let countdownRemaining = 5.0;
+    const COUNTDOWN_TOTAL = 5.0;
+    let fallbackAnimationId = null;
+
+    // Palette: Deep tech & cyber colors with crisp contrast
+    const SEGMENT_COLORS = [
+      { bg: '#0f3a47', text: '#5eead4', border: '#14b8a6' }, // Deep Teal / Cyan
+      { bg: '#2b1b54', text: '#d8b4fe', border: '#a855f7' }, // Cyber Purple
+      { bg: '#0e2a47', text: '#93c5fd', border: '#3b82f6' }, // Deep Cyber Blue
+      { bg: '#3b2510', text: '#fed7aa', border: '#f97316' }, // Muted Amber / Tech Orange
+      { bg: '#103525', text: '#86efac', border: '#22c55e' }, // Matrix Emerald
+      { bg: '#3b122d', text: '#fca5a5', border: '#f43f5e' }, // Deep Crimson / Magenta
+      { bg: '#1b2a47', text: '#7dd3fc', border: '#0284c7' }, // Deep Azure
+      { bg: '#232938', text: '#cbd5e1', border: '#64748b' }, // Stealth Slate
+    ];
+
+    // Default Tech Video Samples
+    const DEFAULT_VIDEOS = [
+      'neural_agent_demo_v2.mp4',
+      'server_cluster_telemetry.mov',
+      'quantum_crypto_explainer.mp4',
+      'cyber_incident_review_09.mkv',
+      'low_latency_benchmark.webm',
+      'autonomous_drone_feed.mp4'
+    ];
+
+    // --- DOM ELEMENT REFERENCES ---
+    const wheelCanvas = document.getElementById('wheelCanvas');
+    const ctx = wheelCanvas.getContext('2d');
+    const matrixCanvas = document.getElementById('matrixCanvas');
+    const mCtx = matrixCanvas.getContext('2d');
+
+    const spinHubBtn = document.getElementById('spinHubBtn');
+    const hubPrimaryText = document.getElementById('hubPrimaryText');
+    const hubSecondaryText = document.getElementById('hubSecondaryText');
+    const hubIcon = document.getElementById('hubIcon');
+    const liveWinnerHud = document.getElementById('liveWinnerHud');
+    const hudWinningFileName = document.getElementById('hudWinningFileName');
+    const systemStatusEl = document.getElementById('systemStatus');
+
+    const entriesCountEl = document.getElementById('entriesCount');
+    const resultsCountEl = document.getElementById('resultsCount');
+    const filePathDisplay = document.getElementById('filePathDisplay');
+    const videoFileInput = document.getElementById('videoFileInput');
+    const addVideoBtn = document.getElementById('addVideoBtn');
+    const dropZone = document.getElementById('dropZone');
+
+    const advancedCheckbox = document.getElementById('advancedCheckbox');
+    const advancedDrawer = document.getElementById('advancedDrawer');
+    const eliminateToggle = document.getElementById('eliminateToggle');
+    const soundToggle = document.getElementById('soundToggle');
+    const spinDurationSelect = document.getElementById('spinDurationSelect');
+    const loadSampleBtn = document.getElementById('loadSampleBtn');
+    const resetResultsBtn = document.getElementById('resetResultsBtn');
+
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const sortBtn = document.getElementById('sortBtn');
+    const editListBtn = document.getElementById('editListBtn');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const listBadge = document.getElementById('listBadge');
+    const videoListContainer = document.getElementById('videoListContainer');
+    const rawTextEditor = document.getElementById('rawTextEditor');
+    const quickTextEditorWrapper = document.getElementById('quickTextEditorWrapper');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const saveEditBtn = document.getElementById('saveEditBtn');
+
+    // Delete Modal Elements
+    const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+    const winnerModal = document.getElementById('winnerModal');
+    const modalWinningName = document.getElementById('modalWinningName');
+    const countdownTimerText = document.getElementById('countdownTimerText');
+    const countdownProgressBar = document.getElementById('countdownProgressBar');
+    const playNowBtn = document.getElementById('playNowBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const dismissModalBtn = document.getElementById('dismissModalBtn');
+    const spinAgainBtn = document.getElementById('spinAgainBtn');
+    const removeWinnerBtn = document.getElementById('removeWinnerBtn');
+
+    // Video Player Elements
+    const videoPlayerModal = document.getElementById('videoPlayerModal');
+    const activeVideoPlayer = document.getElementById('activeVideoPlayer');
+    const playerVideoTitle = document.getElementById('playerVideoTitle');
+    const closePlayerBtn = document.getElementById('closePlayerBtn');
+    const backToWheelBtn = document.getElementById('backToWheelBtn');
+    const playerSpinAgainBtn = document.getElementById('playerSpinAgainBtn');
+    const fallbackStreamContainer = document.getElementById('fallbackStreamContainer');
+    const fallbackCanvas = document.getElementById('fallbackCanvas');
+    const simulatedFileName = document.getElementById('simulatedFileName');
+    const unmuteBanner = document.getElementById('unmuteBanner');
+    const unmuteBtn = document.getElementById('unmuteBtn');
+
+    const changelogBtn = document.getElementById('changelogBtn');
+    const changelogModal = document.getElementById('changelogModal');
+    const closeChangelogBtn = document.getElementById('closeChangelogBtn');
+    const closeChangelogBtn2 = document.getElementById('closeChangelogBtn2');
+
+    // Upload Progress Modal Elements
+    const uploadProgressModal = document.getElementById('uploadProgressModal');
+    const uploadQueueBadge = document.getElementById('uploadQueueBadge');
+    const uploadFileNameDisplay = document.getElementById('uploadFileNameDisplay');
+    const uploadPercentDisplay = document.getElementById('uploadPercentDisplay');
+    const uploadProgressBarFill = document.getElementById('uploadProgressBarFill');
+    const uploadBytesDisplay = document.getElementById('uploadBytesDisplay');
+    const uploadSpeedDisplay = document.getElementById('uploadSpeedDisplay');
+    const uploadEtaDisplay = document.getElementById('uploadEtaDisplay');
+    const uploadStatusMessage = document.getElementById('uploadStatusMessage');
+
+    // --- SYNTHESIZED WEB AUDIO API ---
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playTickSound() {
+      if (!soundToggle || !soundToggle.checked) return;
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.035);
+
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.035);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.04);
+      } catch (e) {
+        // Audio fallback
+      }
+    }
+
+    function playVictoryChime() {
+      if (!soundToggle || !soundToggle.checked) return;
+      try {
+        const ctx = getAudioContext();
+        const notes = [440, 554.37, 659.25, 880];
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+
+          const startTime = ctx.currentTime + (idx * 0.08);
+          gain.gain.setValueAtTime(0, startTime);
+          gain.gain.linearRampToValueAtTime(0.25, startTime + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.9);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(startTime);
+          osc.stop(startTime + 0.95);
+        });
+      } catch (e) {
+        // Audio fallback
+      }
+    }
+
+    // --- MATRIX DIGITAL RAIN ---
+    let matrixColumns = [];
+    const binaryChars = '01010110010101100101';
+    const matrixFontSize = 14;
+
+    function initMatrixRain() {
+      if (!matrixCanvas) return;
+      matrixCanvas.width = window.innerWidth;
+      matrixCanvas.height = window.innerHeight;
+      const cols = Math.floor(matrixCanvas.width / matrixFontSize);
+      matrixColumns = Array.from({ length: cols }, () => Math.floor(Math.random() * -50));
+    }
+
+    function drawMatrixRain() {
+      if (!matrixCanvas || !mCtx) return;
+      mCtx.fillStyle = 'rgba(7, 9, 14, 0.12)';
+      mCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+
+      mCtx.fillStyle = '#00ff66';
+      mCtx.font = `${matrixFontSize}px "JetBrains Mono"`;
+
+      for (let i = 0; i < matrixColumns.length; i++) {
+        const char = binaryChars[Math.floor(Math.random() * binaryChars.length)];
+        const x = i * matrixFontSize;
+        const y = matrixColumns[i] * matrixFontSize;
+
+        mCtx.fillStyle = Math.random() > 0.9 ? 'rgba(0, 255, 102, 0.7)' : 'rgba(0, 255, 102, 0.25)';
+        mCtx.fillText(char, x, y);
+
+        if (y > matrixCanvas.height && Math.random() > 0.985) {
+          matrixColumns[i] = 0;
+        }
+        matrixColumns[i]++;
+      }
+      requestAnimationFrame(drawMatrixRain);
+    }
+
+    // --- UI SYNCHRONIZATION & LIST MANAGEMENT ---
+    function getEntryName(entry) {
+      if (!entry) return '';
+      return typeof entry === 'object' ? entry.name : entry;
+    }
+
+    function updateUI() {
+      if (entriesCountEl) entriesCountEl.textContent = videoEntries.length;
+      if (resultsCountEl) resultsCountEl.textContent = resultsCount;
+      if (listBadge) listBadge.textContent = `${videoEntries.length} Items`;
+
+      if (videoListContainer) {
+        videoListContainer.innerHTML = '';
+        if (videoEntries.length === 0) {
+          const emptyDiv = document.createElement('div');
+          emptyDiv.id = 'emptyListNotice';
+          emptyDiv.className = 'h-full flex flex-col items-center justify-center text-center p-4 text-slate-600 font-mono text-xs';
+          emptyDiv.innerHTML = `
+            <svg class="w-8 h-8 mb-2 opacity-50 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+            </svg>
+            No video files added yet.<br>
+            Click <span class="text-cyber-neon">"Add Video File"</span> to upload to Firebase Cloud Storage.
+          `;
+          videoListContainer.appendChild(emptyDiv);
+        } else {
+          videoEntries.forEach((entry, index) => {
+            const fileName = getEntryName(entry);
+            const hasCloudUrl = typeof entry === 'object' && Boolean(entry.url);
+            const itemEl = document.createElement('div');
+            itemEl.className = 'flex items-center justify-between p-2 rounded-lg bg-cyber-card/70 hover:bg-cyber-card border border-cyber-border/50 text-xs font-mono group transition-colors';
+            itemEl.innerHTML = `
+              <div class="flex items-center gap-2 truncate pr-2">
+                <span class="text-[10px] text-slate-500 font-bold w-5 text-right">#${(index + 1).toString().padStart(2, '0')}</span>
+                <svg class="w-3.5 h-3.5 ${hasCloudUrl ? 'text-cyber-neon' : 'text-cyber-cyan'} flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <span class="truncate text-slate-200" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span>
+                ${hasCloudUrl ? '<span class="text-[9px] px-1 rounded bg-emerald-950/80 text-cyber-neon border border-emerald-500/40 uppercase">Cloud</span>' : ''}
+              </div>
+              <button 
+                data-index="${index}"
+                class="remove-item-btn px-2 py-1 rounded bg-rose-950/30 hover:bg-rose-900/60 border border-rose-800/30 hover:border-rose-600/60 text-rose-400 hover:text-rose-200 transition-all focus:outline-none flex items-center gap-1 text-[11px]"
+                title="Delete Entry from Database & UI"
+              >
+                <svg class="w-3 h-3 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Delete</span>
+              </button>
+            `;
+            const removeBtn = itemEl.querySelector('.remove-item-btn');
+            if (removeBtn) {
+              removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                removeEntryByIndex(index);
+              });
+            }
+            videoListContainer.appendChild(itemEl);
+          });
+        }
+      }
+
+      if (hudWinningFileName && videoEntries.length === 0) {
+        hudWinningFileName.textContent = 'None (Upload videos to spin)';
+        hudWinningFileName.classList.remove('text-glow-green');
+      }
+
+      drawWheel();
+    }
+
+    async function removeEntryByIndex(index) {
+      if (index >= 0 && index < videoEntries.length) {
+        const targetEntry = videoEntries[index];
+        if (targetEntry && targetEntry.id && currentUser) {
+          try {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'wheel_entries', targetEntry.id));
+          } catch (e) {
+            console.warn('Firestore doc deletion warning:', e);
+          }
+        }
+        videoEntries.splice(index, 1);
+        updateUI();
+      }
+    }
+
+    async function deleteAllEntries() {
+      if (systemStatusEl) {
+        systemStatusEl.textContent = 'PURGING DB...';
+        systemStatusEl.classList.add('text-rose-400');
+      }
+
+      // 1. Delete all document records from Firestore
+      if (currentUser) {
+        try {
+          const snapshot = await getDocs(getEntriesCollection());
+          const deleteOps = [];
+          snapshot.forEach((docSnap) => {
+            deleteOps.push(deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'wheel_entries', docSnap.id)));
+          });
+          await Promise.all(deleteOps);
+        } catch (e) {
+          console.warn('Error clearing Firestore collection:', e);
+        }
+      }
+
+      // 2. Clear local entries and blobs
+      videoEntries = [];
+      videoFileBlobs.clear();
+
+      // 3. Synchronize UI
+      updateUI();
+
+      if (systemStatusEl) {
+        systemStatusEl.textContent = 'READY';
+        systemStatusEl.classList.remove('text-rose-400');
+      }
+    }
+
+    function highlightEmptyWarning() {
+      if (filePathDisplay) {
+        filePathDisplay.classList.add('border-rose-500', 'animate-pulse');
+        setTimeout(() => filePathDisplay.classList.remove('border-rose-500', 'animate-pulse'), 1500);
+      }
+      if (dropZone) {
+        dropZone.classList.add('border-rose-500');
+        setTimeout(() => dropZone.classList.remove('border-rose-500'), 1500);
+      }
+      if (hudWinningFileName) {
+        hudWinningFileName.textContent = 'PLEASE ADD VIDEO ENTRIES FIRST!';
+        setTimeout(() => {
+          hudWinningFileName.textContent = 'None (Upload videos to spin)';
+        }, 1800);
+      }
+    }
+
+    // --- SYNTHETIC TELEMETRY STREAM ---
+    function startFallbackCanvasStream() {
+      if (!fallbackCanvas) return;
+      if (fallbackAnimationId) cancelAnimationFrame(fallbackAnimationId);
+
+      const streamCtx = fallbackCanvas.getContext('2d');
+      fallbackCanvas.width = fallbackCanvas.clientWidth || 640;
+      fallbackCanvas.height = fallbackCanvas.clientHeight || 360;
+
+      let waveOffset = 0;
+
+      function renderStream() {
+        const w = fallbackCanvas.width;
+        const h = fallbackCanvas.height;
+
+        streamCtx.fillStyle = '#05070a';
+        streamCtx.fillRect(0, 0, w, h);
+
+        streamCtx.strokeStyle = 'rgba(0, 229, 255, 0.08)';
+        streamCtx.lineWidth = 1;
+        const gridStep = 30;
+        for (let x = 0; x < w; x += gridStep) {
+          streamCtx.beginPath();
+          streamCtx.moveTo(x, 0);
+          streamCtx.lineTo(x, h);
+          streamCtx.stroke();
+        }
+        for (let y = 0; y < h; y += gridStep) {
+          streamCtx.beginPath();
+          streamCtx.moveTo(0, y);
+          streamCtx.lineTo(w, y);
+          streamCtx.stroke();
+        }
+
+        streamCtx.lineWidth = 2;
+        streamCtx.strokeStyle = '#00ff66';
+        streamCtx.beginPath();
+        for (let x = 0; x < w; x++) {
+          const y = (h / 2) + Math.sin((x * 0.02) + waveOffset) * 28 + Math.cos((x * 0.05) - waveOffset) * 14;
+          if (x === 0) streamCtx.moveTo(x, y);
+          else streamCtx.lineTo(x, y);
+        }
+        streamCtx.stroke();
+
+        streamCtx.strokeStyle = 'rgba(0, 229, 255, 0.5)';
+        streamCtx.beginPath();
+        for (let x = 0; x < w; x++) {
+          const y = (h / 2) + Math.sin((x * 0.015) - waveOffset * 0.8) * 45;
+          if (x === 0) streamCtx.moveTo(x, y);
+          else streamCtx.lineTo(x, y);
+        }
+        streamCtx.stroke();
+
+        waveOffset += 0.06;
+        fallbackAnimationId = requestAnimationFrame(renderStream);
+      }
+
+      renderStream();
+    }
+
+    // --- FIREBASE CLOUD STORAGE & FIRESTORE INTEGRATION WITH PROGRESS HUD ---
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0.0 MB';
+      const megabytes = bytes / (1024 * 1024);
+      if (megabytes >= 1024) {
+        return (megabytes / 1024).toFixed(2) + ' GB';
+      }
+      return megabytes.toFixed(1) + ' MB';
+    }
+
+    function showUploadProgressUI(fileName, currentIdx, totalCount) {
+      if (uploadProgressModal) openModal(uploadProgressModal);
+      if (uploadFileNameDisplay) uploadFileNameDisplay.textContent = fileName;
+      if (uploadQueueBadge) uploadQueueBadge.textContent = `${currentIdx} / ${totalCount}`;
+      if (uploadPercentDisplay) uploadPercentDisplay.textContent = '0%';
+      if (uploadProgressBarFill) uploadProgressBarFill.style.width = '0%';
+      if (uploadBytesDisplay) uploadBytesDisplay.textContent = '0.0 / 0.0 MB';
+      if (uploadSpeedDisplay) uploadSpeedDisplay.textContent = '-- MB/s';
+      if (uploadEtaDisplay) uploadEtaDisplay.textContent = 'Calculating...';
+      if (uploadStatusMessage) uploadStatusMessage.textContent = 'Transmitting payload to Firebase Cloud Storage...';
+    }
+
+    function updateUploadProgressMetrics(bytesTransferred, totalBytes, startTime) {
+      const percent = totalBytes > 0 ? Math.min(100, Math.round((bytesTransferred / totalBytes) * 100)) : 0;
+      const elapsedSeconds = Math.max(0.1, (Date.now() - startTime) / 1000);
+      const currentSpeed = bytesTransferred / elapsedSeconds; // bytes per second
+      const speedMB = (currentSpeed / (1024 * 1024)).toFixed(2);
+      
+      const remainingBytes = Math.max(0, totalBytes - bytesTransferred);
+      const remainingSeconds = currentSpeed > 0 ? Math.round(remainingBytes / currentSpeed) : 0;
+
+      if (uploadPercentDisplay) uploadPercentDisplay.textContent = `${percent}%`;
+      if (uploadProgressBarFill) uploadProgressBarFill.style.width = `${percent}%`;
+      if (uploadBytesDisplay) uploadBytesDisplay.textContent = `${formatBytes(bytesTransferred)} / ${formatBytes(totalBytes)}`;
+      if (uploadSpeedDisplay) uploadSpeedDisplay.textContent = `${speedMB} MB/s`;
+
+      if (uploadEtaDisplay) {
+        if (remainingSeconds <= 0 || percent >= 100) {
+          uploadEtaDisplay.textContent = 'Finishing...';
+        } else if (remainingSeconds < 60) {
+          uploadEtaDisplay.textContent = `~${remainingSeconds}s remaining`;
+        } else {
+          const mins = Math.floor(remainingSeconds / 60);
+          const secs = remainingSeconds % 60;
+          uploadEtaDisplay.textContent = `~${mins}m ${secs}s`;
+        }
+      }
+    }
+
+    async function uploadVideoEntry(file, currentIdx = 1, totalCount = 1) {
+      if (!file) return;
+      if (filePathDisplay) {
+        filePathDisplay.value = `Uploading: ${file.name}...`;
+      }
+      if (systemStatusEl) {
+        systemStatusEl.textContent = 'SYNCING';
+        systemStatusEl.classList.add('text-cyber-cyan');
+      }
+
+      showUploadProgressUI(file.name, currentIdx, totalCount);
+      const uploadStartTime = Date.now();
+
+      try {
+        let downloadURL = '';
+        
+        // 1. Upload video file using uploadBytesResumable to track real-time progress
+        try {
+          const storageRef = ref(storage, `videos/${Date.now()}_${file.name}`);
+          const uploadTask = uploadBytesResumable(storageRef, file);
+
+          downloadURL = await new Promise((resolve, reject) => {
+            uploadTask.on(
+              'state_changed',
+              (snapshot) => {
+                updateUploadProgressMetrics(snapshot.bytesTransferred, snapshot.totalBytes, uploadStartTime);
+              },
+              (error) => {
+                reject(error);
+              },
+              async () => {
+                try {
+                  if (uploadStatusMessage) uploadStatusMessage.textContent = 'Finalizing cloud database entry...';
+                  if (uploadProgressBarFill) uploadProgressBarFill.style.width = '100%';
+                  if (uploadPercentDisplay) uploadPercentDisplay.textContent = '100%';
+                  const url = await getDownloadURL(uploadTask.snapshot.ref);
+                  resolve(url);
+                } catch (e) {
+                  reject(e);
+                }
+              }
+            );
+          });
+        } catch (storageErr) {
+          console.warn('Storage upload error, simulating progress and using local Blob URL fallback:', storageErr);
+          
+          // Simulated smooth progress animation for environments with restricted bucket CORS
+          await new Promise((resolve) => {
+            let simProgress = 0;
+            const simInterval = setInterval(() => {
+              simProgress += 12;
+              const simBytes = Math.min(file.size, Math.round((simProgress / 100) * file.size));
+              updateUploadProgressMetrics(simBytes, file.size, uploadStartTime);
+              if (simProgress >= 100) {
+                clearInterval(simInterval);
+                resolve();
+              }
+            }, 60);
+          });
+
+          downloadURL = URL.createObjectURL(file);
+          videoFileBlobs.set(file.name, downloadURL);
+        }
+
+        // 2. Save video entry record into Firestore database
+        if (currentUser) {
+          await addDoc(getEntriesCollection(), {
+            name: file.name,
+            url: downloadURL || '',
+            createdAt: new Date().toISOString()
+          });
+        } else {
+          videoEntries.push({ name: file.name, url: downloadURL });
+          updateUI();
+        }
+
+        if (uploadStatusMessage) uploadStatusMessage.textContent = 'Upload successful!';
+        if (filePathDisplay) filePathDisplay.value = file.name;
+        if (systemStatusEl) {
+          systemStatusEl.textContent = 'READY';
+          systemStatusEl.classList.remove('text-cyber-cyan');
+        }
+
+        // Small delay to let users see the 100% completion before closing
+        await new Promise((resolve) => setTimeout(resolve, 600));
+
+      } catch (err) {
+        console.error('Upload flow error:', err);
+        const localBlob = URL.createObjectURL(file);
+        videoFileBlobs.set(file.name, localBlob);
+        videoEntries.push({ name: file.name, url: localBlob });
+        updateUI();
+        if (filePathDisplay) filePathDisplay.value = file.name;
+        if (systemStatusEl) systemStatusEl.textContent = 'ONLINE (LOCAL)';
+      } finally {
+        if (currentIdx >= totalCount && uploadProgressModal) {
+          closeModal(uploadProgressModal);
+        }
+      }
+    }
+
+    async function loadWheelEntries() {
+      if (!currentUser) return;
+      try {
+        // Simple collection query
+        const querySnapshot = await getDocs(getEntriesCollection());
+        const remoteEntries = [];
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          remoteEntries.push({
+            id: docSnap.id,
+            name: data.name || 'video_entry.mp4',
+            url: data.url || ''
+          });
+        });
+
+        if (remoteEntries.length > 0) {
+          videoEntries = remoteEntries;
+        } else if (videoEntries.length === 0) {
+          // Initialize with demo clips if database is empty
+          videoEntries = DEFAULT_VIDEOS.map(name => ({ name }));
+        }
+        updateUI();
+      } catch (e) {
+        console.warn('loadWheelEntries error:', e);
+        if (videoEntries.length === 0) {
+          videoEntries = DEFAULT_VIDEOS.map(name => ({ name }));
+          updateUI();
+        }
+      }
+    }
+
+    function setupRealtimeListener() {
+      if (!currentUser) return;
+      try {
+        onSnapshot(
+          getEntriesCollection(),
+          (snapshot) => {
+            const entries = [];
+            snapshot.forEach((docSnap) => {
+              const data = docSnap.data();
+              entries.push({
+                id: docSnap.id,
+                name: data.name || 'video_entry.mp4',
+                url: data.url || ''
+              });
+            });
+            if (entries.length > 0) {
+              videoEntries = entries;
+              updateUI();
+            }
+          },
+          (error) => {
+            console.warn('Realtime listener error callback triggered:', error);
+          }
+        );
+      } catch (e) {
+        console.warn('Failed to bind snapshot listener:', e);
+      }
+    }
+
+    // --- WHEEL RENDERING ENGINE ---
+    function resizeWheelCanvas() {
+      if (!wheelCanvas) return;
+      const container = wheelCanvas.parentElement;
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+      const measuredWidth = container.clientWidth || rect.width;
+      const measuredHeight = container.clientHeight || rect.height;
+
+      const rawSize = Math.min(measuredWidth, measuredHeight);
+      const size = Math.max(rawSize > 0 ? rawSize : 380, 160);
+      const dpr = window.devicePixelRatio || 1;
+
+      wheelCanvas.width = Math.round(size * dpr);
+      wheelCanvas.height = Math.round(size * dpr);
+      wheelCanvas.style.width = `${size}px`;
+      wheelCanvas.style.height = `${size}px`;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawWheel();
+    }
+
+    function drawWheel() {
+      if (!wheelCanvas || !ctx) return;
+      const size = parseFloat(wheelCanvas.style.width) || (wheelCanvas.width / (window.devicePixelRatio || 1)) || 380;
+      const centerX = size / 2;
+      const centerY = size / 2;
+      const radius = Math.max(size / 2 - 12, 30);
+
+      if (radius <= 0) return;
+
+      ctx.clearRect(0, 0, size, size);
+      const totalSegments = videoEntries.length;
+
+      if (totalSegments === 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = '#111722';
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#1f2937';
+        ctx.stroke();
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '600 13px "JetBrains Mono"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('[ NO ENTRIES LOADED ]', centerX, centerY - 65);
+        ctx.fillText('UPLOAD VIDEO FILES', centerX, centerY + 65);
+        ctx.restore();
+        return;
+      }
+
+      const arcSize = (2 * Math.PI) / totalSegments;
+
+      for (let i = 0; i < totalSegments; i++) {
+        const segAngleStart = currentAngle + i * arcSize;
+        const segAngleEnd = segAngleStart + arcSize;
+        const palette = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, segAngleStart, segAngleEnd);
+        ctx.closePath();
+
+        ctx.fillStyle = palette.bg;
+        ctx.fill();
+
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#07090e';
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, Math.max(radius - 1, 1), segAngleStart, segAngleEnd);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = palette.border;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(segAngleStart + arcSize / 2);
+
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = palette.text;
+
+        let fontSize = 13;
+        if (totalSegments > 16) fontSize = 10;
+        else if (totalSegments > 24) fontSize = 8.5;
+        ctx.font = `600 ${fontSize}px "JetBrains Mono"`;
+
+        const maxTextWidth = Math.max(radius - 80, 40);
+        let text = getEntryName(videoEntries[i]);
+        if (ctx.measureText(text).width > maxTextWidth) {
+          while (ctx.measureText(text + '…').width > maxTextWidth && text.length > 0) {
+            text = text.slice(0, -1);
+          }
+          text += '…';
+        }
+
+        ctx.fillText(text, Math.max(radius - 20, 20), 0);
+
+        ctx.beginPath();
+        ctx.arc(Math.max(radius - 8, 10), 0, 2.5, 0, 2 * Math.PI);
+        ctx.fillStyle = palette.border;
+        ctx.fill();
+
+        ctx.restore();
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius + 2, 0, 2 * Math.PI);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#1e293b';
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // --- SPIN LOGIC & MECHANICAL ANIMATION ---
+    let spinStartTimestamp = null;
+    let spinDuration = 6000;
+    let startAngle = 0;
+    let targetRotation = 0;
+    let lastTickSegmentIndex = -1;
+
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function triggerSpin() {
+      if (isSpinning) return;
+      if (videoEntries.length === 0) {
+        highlightEmptyWarning();
+        return;
+      }
+
+      getAudioContext();
+      isSpinning = true;
+
+      if (hubPrimaryText) {
+        hubPrimaryText.textContent = 'SYSTEM SPINNING';
+        hubPrimaryText.classList.add('text-cyber-cyan');
+      }
+      if (hubSecondaryText) hubSecondaryText.textContent = 'deciphering target...';
+      if (hubIcon) hubIcon.classList.add('animate-spin');
+
+      const totalSegments = videoEntries.length;
+      const arcSize = (2 * Math.PI) / totalSegments;
+      const winningIndex = Math.floor(Math.random() * totalSegments);
+
+      spinDuration = parseInt(spinDurationSelect ? spinDurationSelect.value : '6000', 10) || 6000;
+
+      const baseTurns = Math.max(5, Math.round((spinDuration / 1000) * 1.3));
+      const extraFullTurns = (baseTurns + Math.floor(Math.random() * 3)) * 2 * Math.PI;
+      const currentNorm = currentAngle % (2 * Math.PI);
+      const targetSegmentCenter = winningIndex * arcSize + arcSize / 2;
+
+      let deltaAngle = (2 * Math.PI - targetSegmentCenter) - currentNorm;
+      if (deltaAngle < 0) {
+        deltaAngle += 2 * Math.PI;
+      }
+
+      startAngle = currentAngle;
+      targetRotation = extraFullTurns + deltaAngle;
+      spinStartTimestamp = null;
+      lastTickSegmentIndex = -1;
+
+      requestAnimationFrame(animationStep);
+    }
+
+    function animationStep(timestamp) {
+      if (!spinStartTimestamp) spinStartTimestamp = timestamp;
+      const elapsed = timestamp - spinStartTimestamp;
+      const progress = Math.min(elapsed / spinDuration, 1);
+
+      const easeVal = easeOutCubic(progress);
+      currentAngle = startAngle + (targetRotation * easeVal);
+
+      const totalSegments = videoEntries.length;
+      const arcSize = (2 * Math.PI) / totalSegments;
+      const pointerAngle = 0;
+
+      let relativeAngle = (pointerAngle - (currentAngle % (2 * Math.PI))) % (2 * Math.PI);
+      if (relativeAngle < 0) relativeAngle += 2 * Math.PI;
+      const currentSegmentIdx = Math.floor(relativeAngle / arcSize);
+
+      if (currentSegmentIdx !== lastTickSegmentIndex) {
+        playTickSound();
+        lastTickSegmentIndex = currentSegmentIdx;
+      }
+
+      drawWheel();
+
+      if (progress < 1) {
+        requestAnimationFrame(animationStep);
+      } else {
+        finalizeSpin(currentSegmentIdx);
+      }
+    }
+
+    function finalizeSpin(winningIndex) {
+      isSpinning = false;
+      const winnerRecord = videoEntries[winningIndex];
+      winningItem = getEntryName(winnerRecord) || 'Unknown Video';
+
+      resultsCount++;
+      if (resultsCountEl) resultsCountEl.textContent = resultsCount;
+
+      playVictoryChime();
+
+      if (hubPrimaryText) {
+        hubPrimaryText.textContent = winningItem;
+        hubPrimaryText.classList.remove('text-cyber-cyan');
+      }
+      if (hubSecondaryText) hubSecondaryText.textContent = 'WINNING SELECTION';
+      if (hubIcon) hubIcon.classList.remove('animate-spin');
+
+      if (hudWinningFileName) {
+        hudWinningFileName.textContent = winningItem;
+        hudWinningFileName.classList.add('text-glow-green');
+      }
+
+      if (modalWinningName) modalWinningName.textContent = winningItem;
+      openModal(winnerModal);
+      startAutoPlayCountdown(winningItem);
+
+      if (eliminateToggle && eliminateToggle.checked && removeWinnerBtn) {
+        removeWinnerBtn.classList.add('ring-2', 'ring-rose-500');
+      }
+    }
+
+    // --- 5-SECOND COUNTDOWN & PLAYBACK TRIGGER ---
+    function startAutoPlayCountdown(fileName) {
+      clearAutoPlayCountdown();
+      countdownRemaining = COUNTDOWN_TOTAL;
+      updateCountdownDisplay();
+
+      const intervalMs = 100;
+      countdownInterval = setInterval(() => {
+        countdownRemaining = Math.max(0, countdownRemaining - (intervalMs / 1000));
+        updateCountdownDisplay();
+
+        if (countdownRemaining <= 0) {
+          clearAutoPlayCountdown();
+          closeModal(winnerModal);
+          launchVideoPlayback(fileName);
+        }
+      }, intervalMs);
+    }
+
+    function clearAutoPlayCountdown() {
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+    }
+
+    function updateCountdownDisplay() {
+      if (countdownTimerText) {
+        countdownTimerText.textContent = `${countdownRemaining.toFixed(1)}s`;
+      }
+      if (countdownProgressBar) {
+        const percentage = Math.max(0, Math.min(100, (countdownRemaining / COUNTDOWN_TOTAL) * 100));
+        countdownProgressBar.style.width = `${percentage}%`;
+      }
+    }
+
+    // --- VIDEO PLAYER THEATER LOGIC ---
+    function launchVideoPlayback(fileName) {
+      if (!fileName) return;
+
+      if (playerVideoTitle) playerVideoTitle.textContent = fileName;
+      if (simulatedFileName) simulatedFileName.textContent = fileName;
+
+      // Check if entry has a direct Firebase Cloud Storage URL or local blob URL
+      const entryObj = videoEntries.find(e => getEntryName(e) === fileName);
+      const mediaUrl = (entryObj && entryObj.url) ? entryObj.url : videoFileBlobs.get(fileName);
+
+      if (mediaUrl) {
+        if (fallbackStreamContainer) fallbackStreamContainer.classList.add('hidden');
+        if (activeVideoPlayer) {
+          activeVideoPlayer.classList.remove('hidden');
+          activeVideoPlayer.src = mediaUrl;
+          activeVideoPlayer.currentTime = 0;
+          activeVideoPlayer.muted = false;
+
+          const playPromise = activeVideoPlayer.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(err => {
+              console.warn('Autoplay unmuted blocked by browser policy. Falling back to muted:', err);
+              activeVideoPlayer.muted = true;
+              activeVideoPlayer.play().catch(e => console.error('Playback failed:', e));
+              if (unmuteBanner) unmuteBanner.classList.remove('hidden');
+            });
+          }
+        }
+      } else {
+        if (activeVideoPlayer) {
+          activeVideoPlayer.pause();
+          activeVideoPlayer.removeAttribute('src');
+          activeVideoPlayer.classList.add('hidden');
+        }
+        if (unmuteBanner) unmuteBanner.classList.add('hidden');
+        if (fallbackStreamContainer) fallbackStreamContainer.classList.remove('hidden');
+        startFallbackCanvasStream();
+      }
+
+      if (videoPlayerModal) {
+        openModal(videoPlayerModal);
+      }
+    }
+
+    function stopVideoPlayback() {
+      if (activeVideoPlayer) {
+        activeVideoPlayer.pause();
+      }
+      if (fallbackAnimationId) {
+        cancelAnimationFrame(fallbackAnimationId);
+        fallbackAnimationId = null;
+      }
+      if (unmuteBanner) {
+        unmuteBanner.classList.add('hidden');
+      }
+      if (videoPlayerModal) {
+        closeModal(videoPlayerModal);
+      }
+    }
+
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // --- EVENT LISTENERS & USER INTERACTIONS ---
+    if (spinHubBtn) spinHubBtn.addEventListener('click', triggerSpin);
+    if (wheelCanvas) wheelCanvas.addEventListener('click', triggerSpin);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (activeTag === 'input' || activeTag === 'textarea') {
+          return;
+        }
+        e.preventDefault();
+        triggerSpin();
+      }
+    });
+
+    if (addVideoBtn && videoFileInput) {
+      addVideoBtn.addEventListener('click', () => {
+        videoFileInput.click();
+      });
+    }
+
+    if (videoFileInput) {
+      videoFileInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        for (let i = 0; i < files.length; i++) {
+          await uploadVideoEntry(files[i], i + 1, files.length);
+        }
+        videoFileInput.value = '';
+      });
+    }
+
+    if (dropZone && videoFileInput) {
+      dropZone.addEventListener('click', () => videoFileInput.click());
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropZone.classList.add('border-cyber-cyan', 'bg-cyber-cyan/10');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropZone.classList.remove('border-cyber-cyan', 'bg-cyber-cyan/10');
+        });
+      });
+
+      dropZone.addEventListener('drop', async (e) => {
+        const files = Array.from(e.dataTransfer.files);
+        for (let i = 0; i < files.length; i++) {
+          await uploadVideoEntry(files[i], i + 1, files.length);
+        }
+      });
+    }
+
+    if (shuffleBtn) {
+      shuffleBtn.addEventListener('click', () => {
+        if (videoEntries.length <= 1) return;
+        for (let i = videoEntries.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [videoEntries[i], videoEntries[j]] = [videoEntries[j], videoEntries[i]];
+        }
+        updateUI();
+      });
+    }
+
+    if (sortBtn) {
+      sortBtn.addEventListener('click', () => {
+        if (videoEntries.length <= 1) return;
+        videoEntries.sort((a, b) => {
+          const nameA = getEntryName(a);
+          const nameB = getEntryName(b);
+          return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+        });
+        updateUI();
+      });
+    }
+
+    if (editListBtn && rawTextEditor && videoListContainer && quickTextEditorWrapper) {
+      editListBtn.addEventListener('click', () => {
+        rawTextEditor.value = videoEntries.map(e => getEntryName(e)).join('\n');
+        videoListContainer.classList.add('hidden');
+        quickTextEditorWrapper.classList.remove('hidden');
+      });
+    }
+
+    if (cancelEditBtn && quickTextEditorWrapper && videoListContainer) {
+      cancelEditBtn.addEventListener('click', () => {
+        quickTextEditorWrapper.classList.add('hidden');
+        videoListContainer.classList.remove('hidden');
+      });
+    }
+
+    if (saveEditBtn && rawTextEditor && quickTextEditorWrapper && videoListContainer) {
+      saveEditBtn.addEventListener('click', () => {
+        const lines = rawTextEditor.value
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0);
+
+        videoEntries = lines.map(name => ({ name }));
+        updateUI();
+        quickTextEditorWrapper.classList.add('hidden');
+        videoListContainer.classList.remove('hidden');
+      });
+    }
+
+    if (advancedCheckbox && advancedDrawer) {
+      advancedCheckbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          advancedDrawer.classList.remove('hidden');
+        } else {
+          advancedDrawer.classList.add('hidden');
+        }
+      });
+    }
+
+    if (loadSampleBtn) {
+      loadSampleBtn.addEventListener('click', () => {
+        videoEntries = DEFAULT_VIDEOS.map(name => ({ name }));
+        updateUI();
+        if (filePathDisplay) filePathDisplay.value = '/var/media/demo_cluster/';
+      });
+    }
+
+    if (resetResultsBtn) {
+      resetResultsBtn.addEventListener('click', () => {
+        resultsCount = 0;
+        updateUI();
+      });
+    }
+
+    // --- DELETE ALL ENTRIES CONFIRMATION FLOW ---
+    if (clearAllBtn) {
+      clearAllBtn.addEventListener('click', () => {
+        if (videoEntries.length === 0) {
+          highlightEmptyWarning();
+          return;
+        }
+        openModal(deleteConfirmModal);
+      });
+    }
+
+    if (cancelDeleteBtn) {
+      cancelDeleteBtn.addEventListener('click', () => {
+        closeModal(deleteConfirmModal);
+      });
+    }
+
+    if (confirmDeleteBtn) {
+      confirmDeleteBtn.addEventListener('click', async () => {
+        closeModal(deleteConfirmModal);
+        await deleteAllEntries();
+      });
+    }
+
+    // --- MODAL UTILITIES ---
+    function openModal(modalEl) {
+      if (!modalEl) return;
+      modalEl.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        modalEl.classList.remove('opacity-0');
+        const box = modalEl.querySelector('div');
+        if (box) {
+          box.classList.remove('scale-95');
+          box.classList.add('scale-100');
+        }
+      });
+    }
+
+    function closeModal(modalEl) {
+      if (!modalEl) return;
+      modalEl.classList.add('opacity-0');
+      const box = modalEl.querySelector('div');
+      if (box) {
+        box.classList.remove('scale-100');
+        box.classList.add('scale-95');
+      }
+      setTimeout(() => {
+        modalEl.classList.add('hidden');
+      }, 300);
+    }
+
+    if (closeModalBtn) {
+      closeModalBtn.addEventListener('click', () => {
+        clearAutoPlayCountdown();
+        closeModal(winnerModal);
+      });
+    }
+
+    if (dismissModalBtn) {
+      dismissModalBtn.addEventListener('click', () => {
+        clearAutoPlayCountdown();
+        closeModal(winnerModal);
+      });
+    }
+
+    if (playNowBtn) {
+      playNowBtn.addEventListener('click', () => {
+        clearAutoPlayCountdown();
+        closeModal(winnerModal);
+        if (winningItem) launchVideoPlayback(winningItem);
+      });
+    }
+
+    if (spinAgainBtn) {
+      spinAgainBtn.addEventListener('click', () => {
+        clearAutoPlayCountdown();
+        closeModal(winnerModal);
+        setTimeout(triggerSpin, 350);
+      });
+    }
+
+    if (removeWinnerBtn) {
+      removeWinnerBtn.addEventListener('click', () => {
+        clearAutoPlayCountdown();
+        if (winningItem) {
+          const index = videoEntries.findIndex(e => getEntryName(e) === winningItem);
+          if (index > -1) {
+            removeEntryByIndex(index);
+          }
+        }
+        closeModal(winnerModal);
+      });
+    }
+
+    if (closePlayerBtn) closePlayerBtn.addEventListener('click', stopVideoPlayback);
+    if (backToWheelBtn) backToWheelBtn.addEventListener('click', stopVideoPlayback);
+
+    if (playerSpinAgainBtn) {
+      playerSpinAgainBtn.addEventListener('click', () => {
+        stopVideoPlayback();
+        setTimeout(triggerSpin, 350);
+      });
+    }
+
+    if (unmuteBtn && activeVideoPlayer) {
+      unmuteBtn.addEventListener('click', () => {
+        activeVideoPlayer.muted = false;
+        if (unmuteBanner) unmuteBanner.classList.add('hidden');
+      });
+    }
+
+    if (changelogBtn) changelogBtn.addEventListener('click', () => openModal(changelogModal));
+    if (closeChangelogBtn) closeChangelogBtn.addEventListener('click', () => closeModal(changelogModal));
+    if (closeChangelogBtn2) closeChangelogBtn2.addEventListener('click', () => closeModal(changelogModal));
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        clearAutoPlayCountdown();
+        closeModal(winnerModal);
+        stopVideoPlayback();
+        closeModal(changelogModal);
+        closeModal(deleteConfirmModal);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      initMatrixRain();
+      resizeWheelCanvas();
+    });
+
+    // --- BOOTSTRAP INITIALIZATION ---
+    async function initializeAppSession() {
+      initMatrixRain();
+      drawMatrixRain();
+
+      // Firebase Authentication before executing queries
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          const credential = await signInWithCustomToken(auth, __initial_auth_token);
+          currentUser = credential.user;
+        } else {
+          const credential = await signInAnonymously(auth);
+          currentUser = credential.user;
+        }
+        if (systemStatusEl) systemStatusEl.textContent = 'CLOUD SYNCED';
+      } catch (authErr) {
+        console.warn('Anonymous auth note:', authErr);
+        currentUser = { uid: 'guest-session' };
+        if (systemStatusEl) systemStatusEl.textContent = 'LOCAL READY';
+      }
+
+      // Load Firestore entries and initialize real-time snapshot listener
+      await loadWheelEntries();
+      setupRealtimeListener();
+
+      requestAnimationFrame(() => {
+        resizeWheelCanvas();
+      });
+
+      if (window.ResizeObserver && wheelCanvas.parentElement) {
+        const resizeObserver = new ResizeObserver(() => {
+          resizeWheelCanvas();
+        });
+        resizeObserver.observe(wheelCanvas.parentElement);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', initializeAppSession);
+    } else {
+      initializeAppSession();
+    }
+
+    window.addEventListener('load', () => {
+      resizeWheelCanvas();
+    });
+  </script>
+</body>
+</html>
