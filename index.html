@@ -1124,7 +1124,21 @@
                 <span class="truncate ${active ? 'text-slate-200' : 'text-slate-500 line-through'}" title="${escapeHtml(fileName)}">
                   ${escapeHtml(fileName)}
                 </span>
-                ${hasCloudUrl ? '<span class="text-[9px] px-1 rounded bg-emerald-950/80 text-cyber-neon border border-emerald-500/40 uppercase flex-shrink-0">Firebase</span>' : ''}
+                ${hasCloudUrl ? `
+                  <button 
+                    type="button"
+                    class="play-firebase-btn inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-950/90 hover:bg-emerald-800/90 border border-emerald-500/50 hover:border-cyber-neon text-cyber-neon hover:text-white text-[9px] uppercase font-bold tracking-wider transition-all cursor-pointer active:scale-95 group/fb shadow-sm flex-shrink-0"
+                    title="Click to play ${escapeHtml(fileName)}"
+                  >
+                    <svg class="w-2.5 h-2.5 text-amber-400 group-hover/fb:text-cyber-neon transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M3.89 15.672L6.255.461A.544.544 0 017.27.288l2.543 4.771zm16.794 3.692l-2.25-14a.54.54 0 00-.919-.295L3.316 19.365l7.856 4.427a1.62 1.62 0 001.588 0zM14.3 7.146l-1.82-3.482a.542.542 0 00-.96 0L3.53 17.984z"/>
+                    </svg>
+                    <span>Firebase</span>
+                    <svg class="w-2 h-2 text-cyber-neon fill-current ml-0.5 group-hover/fb:translate-x-0.5 transition-transform" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </button>
+                ` : ''}
               </div>
 
               <div class="flex items-center gap-1.5 flex-shrink-0">
@@ -1154,6 +1168,18 @@
                 </button>
               </div>
             `;
+
+            // Play video on Firebase icon click
+            const playFirebaseBtn = itemEl.querySelector('.play-firebase-btn');
+            if (playFirebaseBtn) {
+              playFirebaseBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (entry && entry.url) {
+                  videoFileBlobs.set(fileName, entry.url);
+                }
+                launchVideoPlayback(fileName);
+              });
+            }
 
             // Active toggle handler
             const toggleBtn = itemEl.querySelector('.toggle-active-btn');
